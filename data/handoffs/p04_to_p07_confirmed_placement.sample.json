@@ -1,0 +1,11 @@
+{
+  "_about": "P04 -> P07 confirmed placement, in the format proposed by S2 Team 3 on 10 Nov 2026 (P04 builds this in Sprint 3). Open questions: placement ID format (PL-0001 suggested) and who sets academic_advisor. Synthetic data.",
+  "placement": {
+    "placement_id": "PL-0001", "application_id": "APP-0001", "student_id": "COOP-B001",
+    "opportunity_id": "OP-028", "opportunity_version": 2,
+    "employer_name": "Emirates Group", "location": "Dubai", "role_title": "Aviation Analytics Intern",
+    "period_start": "2027-02-01", "period_end": "2027-05-31",
+    "supervisor": "TBC (from P03 listing)", "academic_advisor": "TBC",
+    "status": "university_confirmed", "confirmed_by": "coordinator", "confirmed_at": "2027-01-20T10:00:00Z"
+  }
+}

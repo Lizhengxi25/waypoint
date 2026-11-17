@@ -106,10 +106,12 @@ const SKILL_TAXONOMY = [
   { id: "SK-VIZ",   name: "Data visualisation",       terms: ["data visualisation", "data visualization", "tableau", "power bi", "powerbi", "dashboards", "dashboard design"], agreed: true },
   { id: "SK-PY",    name: "Python",                   terms: ["python", "python programming", "python 3", "pandas"], agreed: false },
   { id: "SK-EXCEL", name: "Spreadsheets",             terms: ["excel", "microsoft excel", "spreadsheets", "google sheets"], agreed: false },
-  { id: "SK-COMM",  name: "Presenting to stakeholders", terms: ["presenting", "presentation", "public speaking", "stakeholder communication"], agreed: false },
+  { id: "SK-COMM",  name: "Communication and presenting", terms: ["communication", "presenting", "presentation", "public speaking", "stakeholder communication"], agreed: false },
   { id: "SK-UX",    name: "User research",            terms: ["user research", "ux research", "usability testing", "customer interviews"], agreed: false },
   { id: "SK-STATS", name: "Statistics",               terms: ["statistics", "statistical analysis", "regression", "r programming"], agreed: false },
-  { id: "SK-FIN",   name: "Financial modelling",      terms: ["financial modelling", "financial modeling", "valuation", "dcf"], agreed: false }
+  { id: "SK-FIN",   name: "Financial modelling",      terms: ["financial modelling", "financial modeling", "valuation", "dcf"], agreed: false },
+  { id: "SK-DESIGN", name: "UI design and prototyping", terms: ["figma", "ui design", "prototyping", "wireframing"], agreed: false },
+  { id: "SK-DMKT",  name: "Digital marketing",        terms: ["digital marketing", "seo", "social media marketing"], agreed: false }
 ];
 
 /* ---------- Synthetic student profiles (P01-shaped) ---------- */
@@ -139,7 +141,7 @@ const AI_STUDENTS = [
 /* ---------- Synthetic published opportunities (P02/P03-shaped) ---------- */
 const AI_OPPORTUNITIES = [
   { id: "OP-028", version: 2, employer: "Emirates Group", title: "Aviation analytics intern", location: "Dubai",
-    start: "2027-01-10", end: "2027-06-20", status: "published", closes: "2026-12-10",
+    start: "2027-02-01", end: "2027-05-31", status: "published", closes: "2026-12-10",
     programmes: ["Business Analytics", "Computer Science", "Data Science"], tags: ["aviation", "analytics", "operations"],
     required: ["SK-JIRA", "SK-EXCEL"], desirable: ["SK-SQL", "SK-VIZ"] },
   { id: "OP-031", version: 1, employer: "Etihad Airways", title: "Network planning intern", location: "Abu Dhabi",
@@ -231,6 +233,6 @@ const AI_FAILURE_LOG = [
     what: "Three paraphrases had an approved answer but scored below the threshold: “How do I get better at Jira?”, “What does the reviewer look for…”, “Why did you recommend Etihad…”.",
     fix: "Added two paraphrases to FAQ-03 and FAQ-05. Words that appear in no approved entry (e.g. employer names) now count at a capped weight. Employer-specific questions still go to the coordinator by design." },
   { id: "F-04", found: "2026-11-17", severity: "Medium: matching limitation", version: "v0.2",
-    what: "Skills outside the shared vocabulary are ignored: Daniel’s Git and Trello and Mei’s Figma add nothing to their scores.",
-    fix: "Unrecognised skills are listed on every result for the coordinator. SoS action: agree new skill IDs with P01 and P05 before Sprint 3." }
+    what: "Skills outside the shared vocabulary are ignored: Daniel’s Git and Trello add nothing to his score (Mei’s Figma was in the same position until SK-DESIGN was proposed).",
+    fix: "Unrecognised skills are listed on every result for the coordinator. Added proposed IDs for the skills P05 asked about (Python, Excel, Figma, Communication, Digital marketing). SoS action: agree the vocabulary with P01 and P05 before Sprint 3." }
 ];

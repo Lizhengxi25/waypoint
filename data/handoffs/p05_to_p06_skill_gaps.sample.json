@@ -1,0 +1,9 @@
+{
+  "_about": "P05 -> P06 skill gaps. Format proposed by S2 Team 3 (P04/P05) on 10 Nov 2026; P05 creates gap_id. Synthetic data. Team P6/P7 imports this in 'Skill gaps > Import from P05'.",
+  "gaps": [
+    { "gap_id": "GAP-001", "student_id": "COOP-B001", "skill_id": "SK-JIRA", "opportunity_id": "OP-028", "opportunity_version": 2,
+      "recommendation_id": "REC-7F3A2C91", "profile_version": 1, "gap_type": "required", "reason": "OP-028 requires Jira; not yet demonstrated" },
+    { "gap_id": "GAP-002", "student_id": "COOP-B001", "skill_id": "SK-SQL", "opportunity_id": "OP-028", "opportunity_version": 2,
+      "recommendation_id": "REC-7F3A2C91", "profile_version": 1, "gap_type": "desirable", "reason": "OP-028 lists SQL as desirable; self-declared only" }
+  ]
+}

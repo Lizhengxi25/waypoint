@@ -69,9 +69,10 @@ const PERIOD = { id: "P1", label: "Period 1", start: "2027-01-10", end: "2027-06
 
 /* Fixtures standing in for other teams' modules */
 const FIXTURES = {
+  /* Format proposed by P05 (S2 Team 3, Faiz) on 10 Nov 2026: our five fields + recommendation_id, opportunity_version, profile_version, gap_type. P05 creates gap_id. */
   P05_GAPS: [
-    { gapId: "GAP-001", studentId: "COOP-B001", skillId: "SK-JIRA", opportunityId: "OP-028", reason: "OP-028 requires Jira; no reviewed evidence on profile" },
-    { gapId: "GAP-002", studentId: "COOP-B001", skillId: "SK-SQL",  opportunityId: "OP-028", reason: "OP-028 lists SQL as preferred; self-declared only" }
+    { gap_id: "GAP-001", student_id: "COOP-B001", skill_id: "SK-JIRA", opportunity_id: "OP-028", opportunity_version: 2, recommendation_id: "REC-7F3A2C91", profile_version: 1, gap_type: "required", reason: "OP-028 requires Jira; not yet demonstrated" },
+    { gap_id: "GAP-002", student_id: "COOP-B001", skill_id: "SK-SQL",  opportunity_id: "OP-028", opportunity_version: 2, recommendation_id: "REC-7F3A2C91", profile_version: 1, gap_type: "desirable", reason: "OP-028 lists SQL as desirable; self-declared only" }
   ],
   P04_PLACEMENT_CONFIRMED: {
     placementId: "PL-028", studentId: "COOP-B001", opportunityId: "OP-028",
@@ -155,7 +156,7 @@ function presetMidpoint() {
     ]
   }];
   s.handoffs = [
-    { id: "HO-001", to: "P01", at: "2026-11-27", status: "sent", payload: { studentId: "COOP-B001", skillId: "SK-JIRA", evidenceId: "EV-0001", outcome: "demonstrated", reviewer: "Maya Chen", reviewDate: "2026-11-27" } },
+    { id: "HO-001", to: "P01", at: "2026-11-27", status: "sent", payload: { student_id: "COOP-B001", skill_id: "SK-JIRA", evidence_id: "EV-0001", outcome: "demonstrated", reviewer: "Maya Chen", review_date: "2026-11-27" } },
     { id: "HO-002", to: "P07", at: "2026-11-27", status: "sent", payload: { studentId: "COOP-B001", demonstrated: [{ skillId: "SK-JIRA", evidenceId: "EV-0001", reviewDate: "2026-11-27" }], inProgress: ["SK-SQL"] } }
   ];
   s.placement = Object.assign({}, FIXTURES.P04_PLACEMENT_CONFIRMED, { receivedAt: "2026-12-15" });

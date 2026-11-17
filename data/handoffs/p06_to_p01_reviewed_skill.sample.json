@@ -1,0 +1,8 @@
+{
+  "_about": "P06 -> P01 review results for the Sprint 2 joint test with P01 (COOP-B001 / SK-JIRA). snake_case names as asked by P01 on 10 Nov 2026. P01 marks a skill 'reviewed' only when outcome = demonstrated. Synthetic data.",
+  "outcome_values": ["demonstrated", "needs_more_evidence", "not_demonstrated"],
+  "records": [
+    { "student_id": "COOP-B001", "skill_id": "SK-JIRA", "evidence_id": "EV-0001", "outcome": "needs_more_evidence", "reviewer": "Maya Chen", "review_date": "2026-11-25" },
+    { "student_id": "COOP-B001", "skill_id": "SK-JIRA", "evidence_id": "EV-0001", "outcome": "demonstrated", "reviewer": "Maya Chen", "review_date": "2026-11-27" }
+  ]
+}

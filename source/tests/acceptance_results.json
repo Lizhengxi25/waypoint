@@ -85,9 +85,15 @@
  },
  {
   "ac": "P06-AC4",
+  "desc": "P01 also receives needs_more_evidence for the revision (agreed outcome values)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
   "desc": "P01 receives skill, evidence ID, outcome and review date",
   "ok": true,
-  "detail": "{\"studentId\": \"COOP-B001\", \"skillId\": \"SK-JIRA\", \"evidenceId\": \"EV-0001\", \"outcome\": \"demonstrated\", \"reviewer\": \"Maya Chen\", \"reviewDate\": \"2026-11-23\"}"
+  "detail": "{\"student_id\": \"COOP-B001\", \"skill_id\": \"SK-JIRA\", \"evidence_id\": \"EV-0001\", \"outcome\": \"demonstrated\", \"reviewer\": \"Maya Chen\", \"review_date\": \"2026-11-23\"}"
  },
  {
   "ac": "P06-X",

@@ -71,8 +71,9 @@ async def main():
         await pg.click("button[value=demonstrated]")
         s = await S(); sub = s["submissions"][0]
         check("P06-AC4", "Resubmission checked against checklist; original and revision both kept", sub["status"]=="demonstrated" and len(sub["versions"])==2 and len(sub["reviews"])==2)
-        h = [x for x in s["handoffs"] if x["to"]=="P01"]
-        ok = h and set(h[0]["payload"]) >= {"skillId","evidenceId","outcome","reviewDate"}
+        h = [x for x in s["handoffs"] if x["to"]=="P01" and x["payload"]["outcome"]=="demonstrated"]
+        ok = h and set(h[0]["payload"]) >= {"student_id","skill_id","evidence_id","outcome","reviewer","review_date"}
+        check("P06-AC4", "P01 also receives needs_more_evidence for the revision (agreed outcome values)", any(x["to"]=="P01" and x["payload"]["outcome"]=="needs_more_evidence" for x in s["handoffs"]))
         check("P06-AC4", "P01 receives skill, evidence ID, outcome and review date", ok, json.dumps(h[0]["payload"]) if h else "")
         check("P06-X", "Readiness summary sent to P07 (internal handoff)", any(x["to"]=="P07" for x in s["handoffs"]))
         await pg.screenshot(path=str(OUT / "flow_review_done.png"))

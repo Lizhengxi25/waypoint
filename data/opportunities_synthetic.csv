@@ -1,5 +1,5 @@
 opportunity_id,version,employer,title,location,start,end,listing_status,closes,eligible_programmes,interest_tags,required_skill_ids,desirable_skill_ids
-OP-028,2,Emirates Group,Aviation analytics intern,Dubai,2027-01-10,2027-06-20,published,2026-12-10,Business Analytics; Computer Science; Data Science,aviation; analytics; operations,SK-JIRA; SK-EXCEL,SK-SQL; SK-VIZ
+OP-028,2,Emirates Group,Aviation analytics intern,Dubai,2027-02-01,2027-05-31,published,2026-12-10,Business Analytics; Computer Science; Data Science,aviation; analytics; operations,SK-JIRA; SK-EXCEL,SK-SQL; SK-VIZ
 OP-031,1,Etihad Airways,Network planning intern,Abu Dhabi,2027-01-10,2027-06-20,published,2026-12-10,Business Analytics; Data Science; Engineering,aviation; planning; analytics,SK-SQL; SK-EXCEL,SK-PY
 OP-033,1,Marina Logistics (fictional),Supply-chain data intern,Dubai,2027-01-10,2027-06-20,published,2026-12-15,Business Analytics; Computer Science; Industrial Engineering,logistics; operations; analytics,SK-SQL; SK-PY,SK-VIZ; SK-JIRA
 OP-035,1,Dune Fintech (fictional),Junior data engineering intern,Abu Dhabi,2027-01-10,2027-06-20,published,2026-12-15,Computer Science; Data Science,fintech; software; data engineering,SK-PY; SK-SQL,SK-JIRA

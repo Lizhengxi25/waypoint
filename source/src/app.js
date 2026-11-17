@@ -361,7 +361,7 @@
       can("coordinator") ? `<button class="btn" type="button" data-action="import-gaps">Import gaps from P05</button>` : "") +
       `<div class="layout"><div class="stack">
         <section class="panel">${S.gaps.length ? `<table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Opportunity</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
-          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div></td><td class="id">${esc(g.opportunityId || "—")}</td><td>${g.source === "P05" ? '<span class="tag sim">P05 fixture</span>' : g.source === "match" ? '<span class="tag">Matching</span>' : '<span class="tag">Manual</span>'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
+          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div>${g.opportunityVersion ? `<div class="small muted">Traced to ${g.recommendationId ? esc(g.recommendationId) + " · " : ""}${esc(g.opportunityId)} v${g.opportunityVersion} · profile v${g.profileVersion}${g.gapType ? " · " + esc(g.gapType) : ""}</div>` : ""}</td><td class="id">${esc(g.opportunityId || "—")}</td><td>${g.source === "P05" ? '<span class="tag sim">P05 fixture</span>' : g.source === "match" ? '<span class="tag">Matching</span>' : '<span class="tag">Manual</span>'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
           </tbody></table>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the synthetic P05 output or enter a gap by hand.</p></div>`}</section>
         <section class="panel"><div class="panel-head"><h2>Enter a gap manually</h2></div><div class="panel-body">
           ${can("coordinator") ? `<form data-form="manual-gap"><div class="grid-2">
@@ -556,10 +556,10 @@
   /* ================= Records ================= */
   function pageRecords() {
     const ifaces = [
-      ["P05 → P06", "Skill gap", "gapId, studentId, skillId, opportunityId, reason", "Fixture", "Received through import"],
-      ["P06 → P01", "Reviewed skill evidence", "studentId, skillId, evidenceId, outcome, reviewer, reviewDate", "Fixture endpoint", "Sent on each demonstrated decision"],
+      ["P05 → P06", "Skill gap", "gap_id, student_id, skill_id, opportunity_id, opportunity_version, recommendation_id, profile_version, gap_type, reason", "Fixture (P05’s proposed format, 10 Nov)", "P05 creates gap_id; imported once per open skill"],
+      ["P06 → P01", "Reviewed skill evidence", "student_id, skill_id, evidence_id, outcome, reviewer, review_date", "Fixture endpoint (joint test with P01 in Sprint 2)", "Sent on every review decision; outcome = demonstrated, needs_more_evidence or not_demonstrated; P01 marks reviewed only on demonstrated"],
       ["P06 → P07", "Readiness summary", "studentId, demonstrated[], inProgress[]", "Working (same team)", "Sent with each demonstrated decision"],
-      ["P04 → P07", "Confirmed placement", "placementId, studentId, employer, period, supervisor, advisor, status", "Fixture", "Rejected unless status is university_confirmed"]
+      ["P04 → P07", "Confirmed placement", "placementId, studentId, employer, period, supervisor, advisor, status. P04 proposed for Sprint 3: placement_id (PL-0001), application_id, opportunity_version, employer_name, location, role_title, confirmed_by, confirmed_at", "Fixture", "Rejected unless status is university_confirmed"]
     ];
     const features = [
       ["Working", "Records saved in this browser; preparation plan; resource completion; simulated board; evidence submission, review and revision; skill gaps; learning agreement; logbook with feedback and revision; outcome judgements; support actions and overdue status; final review"],
@@ -697,7 +697,7 @@
         const p06 = SKILLS.find((k) => k.id === g.id);
         const open = S.gaps.find((x) => x.skillId === g.id && x.status === "open");
         const done = S.submissions.find((x) => x.skillId === g.id && x.status === "demonstrated");
-        const act = !isLayla ? "" : done ? "" : open ? `<span class="small muted">On plan as ${esc(open.id)}</span>` : p06 && (can("student") || can("coordinator")) ? `<button class="btn secondary sm" type="button" data-action="match-gap" data-skill="${g.id}" data-op="${op.id}">Add to preparation plan</button>` : p06 ? "" : `<span class="small muted">No P06 module yet</span>`;
+        const act = !isLayla ? "" : done ? "" : open ? `<span class="small muted">On plan as ${esc(open.id)}</span>` : p06 && (can("student") || can("coordinator")) ? `<button class="btn secondary sm" type="button" data-action="match-gap" data-skill="${g.id}" data-op="${op.id}" data-kind="${g.kind}">Add to preparation plan</button>` : p06 ? "" : `<span class="small muted">No P06 module yet</span>`;
         return `<li><span class="${g.kind === "required" ? "gap-req" : "gap-des"}">${esc(g.name)}</span> <span class="small muted">(${g.kind})</span> ${act}</li>`;
       }).join("");
       const reqForm = ui.open["mr-" + op.id] ? `<form data-form="match-review" data-op="${op.id}" style="margin-top:10px"><label class="label small" for="mr-${op.id}">What should the coordinator look at?</label><textarea class="input" id="mr-${op.id}" name="text" style="min-height:60px"></textarea>${ui.errors["mr-" + op.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["mr-" + op.id])}</div>` : ""}<div class="btn-row" style="margin-top:6px"><button class="btn sm" type="submit">Send to coordinator</button><button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Cancel</button></div></form>` : "";
@@ -812,8 +812,10 @@
     const inp = $("#askq"); if (inp) inp.focus();
   }
   let pendingMove = null;
+  /* Field names in snake_case and outcome values as asked by P01 (Ziyue, 10 Nov 2026). P01 shows "reviewed" only when outcome = demonstrated. */
+  const P01_OUTCOME = { demonstrated: "demonstrated", revision: "needs_more_evidence", not_yet: "not_demonstrated" };
   function sendP01(sub, review) {
-    const payload = { studentId: "COOP-B001", skillId: sub.skillId, evidenceId: sub.id, outcome: "demonstrated", reviewer: review.by, reviewDate: review.at };
+    const payload = { student_id: "COOP-B001", skill_id: sub.skillId, evidence_id: sub.id, outcome: P01_OUTCOME[review.decision], reviewer: review.by, review_date: review.at };
     S.handoffs.push({ id: nextId("HO-", S.handoffs), to: "P01", at: S.today, status: "sent", payload });
   }
   function readinessPayload() {
@@ -830,8 +832,8 @@
       "preset": () => { S = ensureAI(PRESETS[b.dataset.preset].make()); ui = { open: {}, errors: {}, draft: {} }; save(); location.hash = "#/" + HOME[S.role]; render(); toast(`Loaded “${PRESETS[S.preset].label}”`); },
       "import-gaps": () => {
         let added = 0, skipped = 0;
-        FIXTURES.P05_GAPS.forEach((g) => { if (S.gaps.some((x) => x.skillId === g.skillId && x.status === "open") || S.gaps.some((x) => x.id === g.gapId)) { skipped++; return; }
-          S.gaps.push({ id: g.gapId, studentId: g.studentId, skillId: g.skillId, opportunityId: g.opportunityId, source: "P05", reason: g.reason, createdAt: S.today, status: "open" }); added++; });
+        FIXTURES.P05_GAPS.forEach((g) => { if (S.gaps.some((x) => x.skillId === g.skill_id && x.status === "open") || S.gaps.some((x) => x.id === g.gap_id)) { skipped++; return; }
+          S.gaps.push({ id: g.gap_id, studentId: g.student_id, skillId: g.skill_id, opportunityId: g.opportunity_id, opportunityVersion: g.opportunity_version, recommendationId: g.recommendation_id, profileVersion: g.profile_version, gapType: g.gap_type, source: "P05", reason: g.reason, createdAt: S.today, status: "open" }); added++; });
         if (added) event(`Imported ${added} skill gap${added > 1 ? "s" : ""} from P05`);
         commit(added ? `Imported ${added} gap${added > 1 ? "s" : ""} from P05${skipped ? `; ${skipped} already open` : ""}` : "No new gaps: these skills already have open gaps");
       },
@@ -862,7 +864,8 @@
         m.flagged = id; event(`Sent question ${id} to the coordinator (answer did not fit)`); commit(`${id} sent to ${PEOPLE.coordinator.name}`); },
       "match-gap": () => { const sk = b.dataset.skill, op = b.dataset.op;
         if (S.gaps.some((g) => g.skillId === sk && g.status === "open")) { toast("This gap is already on the plan"); return; }
-        const id = nextId("GAP-", S.gaps); S.gaps.push({ id, studentId: "COOP-B001", skillId: sk, opportunityId: op, source: "match", reason: `${op} lists ${IPP_AI.skillName(sk)}; no reviewed evidence yet (matching, Sprint 2)`, createdAt: S.today, status: "open" });
+        const opv = (AI_OPPORTUNITIES.find((o) => o.id === op) || {}).version, pv = studentForMatch("COOP-B001").profileVersion, gt = b.dataset.kind || null;
+        const id = nextId("GAP-", S.gaps); S.gaps.push({ id, studentId: "COOP-B001", skillId: sk, opportunityId: op, opportunityVersion: opv, profileVersion: pv, gapType: gt, recommendationId: null, source: "match", reason: `${op} lists ${IPP_AI.skillName(sk)}; no reviewed evidence yet (matching, Sprint 2)`, createdAt: S.today, status: "open" });
         event(`Added skill gap ${id} from matching (${op})`); commit(`${id} added to the preparation plan`); },
       "export": () => { const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(blob); const a2 = document.createElement("a"); a2.href = u; a2.download = `teamp6p7-records-${S.today}.json`; a2.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
     }[a];
@@ -903,7 +906,7 @@
         const review = { at: S.today, by: me().name, decision, comment: comment || "All criteria met.", checklist };
         sub.reviews.push(review); sub.status = decision;
         if (decision === "demonstrated") { const g = S.gaps.find((x) => x.skillId === sub.skillId && x.status === "open"); if (g) g.status = "closed"; sendP01(sub, review); S.handoffs.push({ id: nextId("HO-", S.handoffs), to: "P07", at: S.today, status: "sent", payload: readinessPayload() }); event(`Recorded ${sub.id} as demonstrated; sent to P01 and P07`); }
-        else event(decision === "revision" ? `Requested a revision on ${sub.id}` : `Recorded ${sub.id} as not yet demonstrated`);
+        else { sendP01(sub, review); event(decision === "revision" ? `Requested a revision on ${sub.id}; sent needs_more_evidence to P01` : `Recorded ${sub.id} as not yet demonstrated; sent to P01`); }
         ui.errors.review = null; ui.draft = {}; commit(decision === "demonstrated" ? `${sub.id} recorded as demonstrated and sent to P01` : decision === "revision" ? "Revision requested" : "Recorded as not yet demonstrated"); },
       "manual-gap": () => { const skill = fd.get("skill"), reason = (fd.get("reason") || "").trim(), op = (fd.get("op") || "").trim().toUpperCase();
         const dup = S.gaps.find((g) => g.skillId === skill && g.status === "open");

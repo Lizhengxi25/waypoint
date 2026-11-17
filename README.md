@@ -22,10 +22,11 @@ Live site: https://lizhengxi25.github.io/waypoint/ (the repository name is kept 
 |---|---|
 | `index.html` | Built single-file app (published by GitHub Pages) |
 | `data/` | Synthetic sample data: students, opportunities, approved FAQ, skill vocabulary (CSV) |
+| `data/handoffs/` | Sample records for partner teams: P05 → P06 gaps (P05's format), P06 → P01 review results (snake_case, for the joint test), P04 → P07 placement (P04's proposed format) |
 | `source/src/ai_data.js` | Approved FAQ, synthetic students and opportunities, weights, test plan, failure log |
 | `source/src/ai_engine.js` | Assistant retrieval and matching rules (pure functions) |
 | `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the blue theme |
-| `source/tests/` | `ai_test.py` (28 checks) and `acceptance_test.py` (34 checks), with their result JSON |
+| `source/tests/` | `ai_test.py` (28 checks) and `acceptance_test.py` (35 checks), with their result JSON |
 
 ## Build and test
 ```
@@ -33,5 +34,5 @@ cd source
 python3 build.py                      # writes dist/TeamP6P7.html; copy it to ../index.html
 pip install playwright && playwright install chromium
 python3 tests/ai_test.py              # 28 checks
-python3 tests/acceptance_test.py      # 34 checks
+python3 tests/acceptance_test.py      # 35 checks
 ```
