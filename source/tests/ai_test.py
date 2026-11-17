@@ -25,8 +25,8 @@ async def main():
         # ---------- Branding ----------
         side = await pg.inner_text(".side")
         check("UI", "App is branded Team P6/P7 (no Waypoint)", "Team P6/P7" in side and "Waypoint" not in (await pg.content()))
-        bg = await pg.evaluate("getComputedStyle(document.querySelector('.side')).backgroundColor")
-        check("UI", "Theme colour is blue", bg == "rgb(18, 59, 115)", bg)
+        navy = await pg.evaluate("getComputedStyle(document.querySelector('h1')).color")
+        check("UI", "Theme uses MBZUAI navy #154677", navy == "rgb(21, 70, 119)", navy)
 
         # ---------- Assistant ----------
         await role("student"); await go("assistant")

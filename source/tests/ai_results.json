@@ -7,9 +7,9 @@
  },
  {
   "ac": "UI",
-  "desc": "Theme colour is blue",
+  "desc": "Theme uses MBZUAI navy #154677",
   "ok": true,
-  "detail": "rgb(18, 59, 115)"
+  "detail": "rgb(21, 70, 119)"
  },
  {
   "ac": "CB",

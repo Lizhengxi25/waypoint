@@ -100,6 +100,7 @@ async def main():
         s = await S(); check("P07-X", "Learning agreement: 3 goals mapped to outcomes, agreed by 3 parties", s["agreement"]["status"]=="agreed" and len(s["agreement"]["goals"])==3)
 
         await role("student"); await go("logbook")
+        await pg.click("[data-action=toggle][data-id=log-new]")
         await pg.select_option("#l-goal", "G1"); await pg.fill("#l-text", "Finished the dashboard."); await pg.click("form[data-form=log] button")
         t = await text(); check("P07-EXC", "Log entry that is too brief is rejected with guidance", "at least eight words" in t)
         await pg.select_option("#l-goal", "G1"); await pg.fill("#l-text", "Finished the first version of the on-time-performance dashboard this week."); await pg.fill("#l-new", "OTP dashboard v1 screenshot")
