@@ -25,7 +25,7 @@ Live site: https://lizhengxi25.github.io/waypoint/ (the repository name is kept 
 | `data/handoffs/` | Sample records for partner teams: P05 → P06 gaps (P05's format), P06 → P01 review results (snake_case, for the joint test), P04 → P07 placement (P04's proposed format) |
 | `source/src/ai_data.js` | Approved FAQ, synthetic students and opportunities, weights, test plan, failure log |
 | `source/src/ai_engine.js` | Assistant retrieval and matching rules (pure functions) |
-| `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the blue theme |
+| `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the MBZUAI theme (navy #154677, blue #006BA1, gold #E5C687) |
 | `source/tests/` | `ai_test.py` (28 checks) and `acceptance_test.py` (35 checks), with their result JSON |
 
 ## Build and test

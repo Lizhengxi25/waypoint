@@ -111,18 +111,18 @@
 
   /* ================= Shell ================= */
   const NAV = [
-    { group: "AI features (Sprint 2)", items: [
+    { group: "AI", items: [
       { r: "assistant", label: "Ask the assistant", count: () => (S.role === "coordinator" ? openHandoffs() : 0) },
       { r: "matches", label: "Internship matches", count: () => (S.role === "coordinator" ? S.matchReviews.filter((q) => q.status === "open").length : 0) },
       { r: "ai-checks", label: "AI checks" }
     ]},
-    { group: "Preparation (P06)", items: [
+    { group: "Preparation", items: [
       { r: "plan", label: "Preparation plan" },
       { r: "catalogue", label: "Modules" },
       { r: "review", label: "Review queue", count: pendingReviews },
       { r: "gaps", label: "Skill gaps" }
     ]},
-    { group: "Co-op progress (P07)", items: [
+    { group: "Co-op", items: [
       { r: "placement", label: "Placement" },
       { r: "agreement", label: "Learning agreement" },
       { r: "logbook", label: "Logbook", count: () => (S.role === "supervisor" ? pendingLogsForSupervisor() : 0) },
@@ -146,21 +146,19 @@
     <div class="app">
       <aside class="side" aria-label="Navigation">
         <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#fff" stroke-width="2"/><path d="M16 7.5 24.5 16 16 24.5 7.5 16z" fill="#8EC5FF"/><circle cx="16" cy="16" r="2.6" fill="#123B73"/></svg>
-          <div><div class="brand-name">Team P6/P7</div><div class="brand-sub">Co-op preparation and progress</div></div>
-        </div>
-        <div class="whoami">
-          <label for="role">Viewing as</label>
-          <select id="role" data-change="role">
-            ${Object.entries(PEOPLE).map(([k, p]) => `<option value="${k}" ${k === S.role ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
-          </select>
-          <div class="role-line">${esc(me().role)}</div>
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="#E5C687" stroke-width="1.5"/><path d="M16 8 24 16 16 24 8 16z" fill="#E5C687"/></svg>
+          <div class="brand-name">Team P6/P7</div>
         </div>
         <nav>${navHTML}</nav>
         <div class="side-foot">
-          <div>Demo date <span class="today">${d(S.today)}</span></div>
-          <button type="button" data-action="open-settings">Demo scenarios and date</button>
-          <div>Synthetic classroom data. Not connected to MBZUAI systems.</div>
+          <div class="whoami">
+            <label for="role">Viewing as</label>
+            <select id="role" data-change="role">
+              ${Object.entries(PEOPLE).map(([k, p]) => `<option value="${k}" ${k === S.role ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
+            </select>
+            <div class="role-line">${esc(me().role)}</div>
+          </div>
+          <button type="button" class="demo-link" data-action="open-settings">Demo · ${d(S.today)}</button>
         </div>
       </aside>
       <main class="main" id="main" tabindex="-1">${content}</main>
@@ -170,15 +168,24 @@
     ${reasonDialog()}`;
   }
 
+  function eyebrow() {
+    const { r } = route(), rr = r === "module" ? "catalogue" : r === "submission" ? "review" : r;
+    const g = NAV.find((x) => x.items.some((i) => i.r === rr));
+    return g ? g.group : "";
+  }
   function head(title, lede, right, crumb) {
-    return `<header class="page-head"><div>${crumb ? `<div class="crumb">${crumb}</div>` : ""}<h1>${title}</h1>${lede ? `<p class="lede">${lede}</p>` : ""}</div>${right ? `<div>${right}</div>` : ""}</header>`;
+    const eb = crumb ? "" : eyebrow();
+    return `<header class="page-head"><div>${crumb ? `<div class="crumb">${crumb}</div>` : eb ? `<div class="eyebrow">${esc(eb)}</div>` : ""}<h1>${title}</h1>${lede ? `<p class="lede">${lede}</p>` : ""}</div>${right ? `<div>${right}</div>` : ""}</header>`;
   }
   const nextStrip = (n) => `<div class="next ${n.cls}" role="status"><span class="next-dot" aria-hidden="true"></span><div class="next-text">${n.html}</div></div>`;
 
+  /* Secondary information is folded away under a quiet link at the bottom of the page. */
   function rail(title, items, extra) {
-    return `<aside class="rail"><section class="panel" aria-label="${esc(title)}"><div class="panel-head"><h2 style="font-size:16px">${esc(title)}</h2></div><div class="panel-body">
-      ${items.length ? `<ol class="timeline">${items.map((i) => `<li class="${i.cls || ""}"><div class="when">${d(i.at)}</div><div><span class="who">${esc(i.who)}</span> ${esc(i.text)}</div></li>`).join("")}</ol>` : extra ? "" : `<p class="muted small">Nothing recorded yet.</p>`}
-      ${extra || ""}</div></section></aside>`;
+    if (!items.length && !extra) return "";
+    const key = "more-" + title;
+    return `<details class="more rail" data-key="${esc(key)}" ${ui.open[key] ? "open" : ""}><summary>${esc(title)}</summary><section class="panel" aria-label="${esc(title)}"><div class="panel-body" style="padding-top:20px">
+      ${items.length ? `<ol class="timeline">${items.map((i) => `<li><div class="when">${d(i.at)}</div><div><span class="who">${esc(i.who)}</span> ${esc(i.text)}</div></li>`).join("")}</ol>` : ""}
+      ${extra || ""}</div></section></details>`;
   }
 
   /* ================= P06 pages ================= */
@@ -187,36 +194,30 @@
     const gaps = [...S.gaps].sort((a, b) => (a.status === "open" ? -1 : 1) - (b.status === "open" ? -1 : 1));
     const rows = gaps.map((g) => {
       const sk = skillOf(g.skillId), mod = MODULES[sk.module], st = skillStatus(g.skillId);
-      const act = S.resources[mod.id] ? chip("info", "Activity complete") : chip("none", "Activity not started");
       return `<section class="skill" aria-label="${esc(sk.name)}">
         <div class="skill-top">
-          <div><h3>${esc(sk.name)}</h3><div class="skill-meta"><span class="id">${esc(g.id)}</span> for <span class="id">${esc(g.opportunityId || "—")}</span>. ${esc(g.reason)}</div></div>
-          <div class="btn-row" style="justify-content:flex-end">${act}${chip(st.cls, st.label)}</div>
+          <div><h3>${esc(sk.name)}</h3><div class="skill-meta">${esc(g.id)} · for ${esc(g.opportunityId || "—")}</div></div>
+          <div class="btn-row">${chip(st.cls, st.label)}<a class="btn ${st.key === "demonstrated" || mod.status !== "full" ? "secondary" : ""} sm" href="#/module/${mod.id}">${mod.status === "full" ? (st.key === "demonstrated" ? "View" : "Open module") : "View outline"}</a></div>
         </div>
         ${chainHTML(chainFor(g), sk.name + " progress")}
-        <div class="btn-row" style="margin-top:14px">
-          <a class="btn ${st.key === "demonstrated" ? "secondary" : ""} sm" href="#/module/${mod.id}">${mod.status === "full" ? (st.key === "demonstrated" ? "View module and evidence" : "Open module") : "View module outline"}</a>
-          ${mod.status !== "full" ? '<span class="tag def">Content in development</span>' : ""}
-        </div>
       </section>`;
     }).join("");
     const p06Events = S.events.filter((e) => /EV-|gap|P05|P01|readiness|resource|P07 readiness/i.test(e.text) && !/placement|agreement|LOG-|ACT-|judgement|employer|Period/i.test(e.text)).slice(-8).reverse();
     return head(`${S.role === "student" ? "Your" : "Layla’s"} preparation plan`,
-      "Each skill gap links to a short module, a practical task and a reviewed decision. A skill counts as demonstrated only after review.") +
+      "A skill counts as demonstrated only after a reviewer approves your evidence. Finishing the reading is not enough.") +
       nextStrip(n) +
       `<div class="layout"><div class="stack">
         <section class="panel divided">${rows || `<div class="empty"><h3>No skill gaps yet</h3><p class="muted">Gaps arrive from opportunity matching (P05) or are entered by the co-op coordinator.</p>${can("coordinator") ? '<a class="btn sm" href="#/gaps">Add skill gaps</a>' : locked("coordinator", "add skill gaps")}</div>`}</section>
-        ${notice("rule", "<strong>Completing an activity is not the same as demonstrating a skill.</strong> Finishing the reading marks the activity complete. Only a reviewer’s recorded decision, based on your evidence, marks the skill as demonstrated.")}
-      </div>${rail("Readiness record", p06Events.map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()), cls: /demonstrated/.test(e.text) ? "ok" : /revision/i.test(e.text) ? "warn" : "" })))}</div>`;
+      </div>${rail("History", p06Events.map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()) })))}</div>`;
   }
 
   function pageCatalogue() {
-    return head("Modules", "A small catalogue linked to the shared skill vocabulary used by P01 and P05. One module is fully built; two are outlined for later sprints.") +
+    return head("Modules", "Short, practical modules, each tied to one skill.") +
       `<div class="layout single"><section class="panel divided">${Object.values(MODULES).map((m) => {
         const sk = skillOf(m.skill);
-        return `<div class="skill"><div class="skill-top"><div><h3><a href="#/module/${m.id}">${esc(m.title)}</a></h3><div class="skill-meta"><span class="id">${m.id}</span> builds <strong>${esc(sk.name)}</strong> <span class="id">${sk.id}</span>. About ${m.minutes} minutes.</div></div>
-          ${m.status === "full" ? chip("ok", "Available") : '<span class="tag def">Outline only</span>'}</div>
-          <p style="max-width:70ch;margin:0">${esc(m.outcome)}</p></div>`;
+        return `<div class="skill"><div class="skill-top" style="margin-bottom:8px"><div><h3><a href="#/module/${m.id}" style="color:var(--ink)">${esc(m.title)}</a></h3><div class="skill-meta">${esc(sk.name)} · ${m.minutes} min</div></div>
+          ${m.status === "full" ? chip("ok", "Available") : chip("none", "Coming later")}</div>
+          <p class="muted" style="max-width:68ch;margin:0;font-size:14px">${esc(m.outcome)}</p></div>`;
       }).join("")}</section></div>`;
   }
 
@@ -241,12 +242,11 @@
     const sk = skillOf(m.skill), gap = S.gaps.find((g) => g.skillId === m.skill), sub = subFor(m.skill), st = skillStatus(m.skill);
     const crumb = `<a href="#/catalogue">Modules</a> / <span class="id">${m.id}</span>`;
     if (m.status !== "full") {
-      return head(esc(m.title), null, '<span class="tag def">Outline only</span>', crumb) +
-        `<div class="layout single"><div class="stack"><section class="panel"><div class="panel-body">
-          <div class="label muted small" style="margin-bottom:4px">Learning outcome</div><p class="outcome">${esc(m.outcome)}</p>
-          <h3 style="margin-top:14px">Planned practical task</h3><p>${esc(m.task)}</p>
-          <h3 style="margin-top:10px">Assessment checklist</h3><ol class="checklist">${m.checklist.map((c) => `<li>${esc(c)}</li>`).join("")}</ol>
-          ${notice("wait", "This module is outlined for a later sprint. Resource content and review are deferred; a coordinator can still record the gap.")}
+      return head(esc(m.title), "This module is outlined for a later sprint.", chip("none", "Coming later"), crumb) +
+        `<div class="layout single"><div class="stack"><section class="panel"><div class="panel-body" style="padding-top:24px">
+          <p class="outcome">${esc(m.outcome)}</p>
+          <h3 style="margin-top:24px">Planned task</h3><p class="muted">${esc(m.task)}</p>
+          <h3 style="margin-top:18px">The reviewer will check</h3><ol class="checklist">${m.checklist.map((c) => `<li>${esc(c)}</li>`).join("")}</ol>
         </div></section></div></div>`;
     }
     const learned = S.resources[m.id];
@@ -257,28 +257,24 @@
     const versionsRail = sub ? historyItems(sub) : [];
     return head(esc(m.title), null, chip(st.cls, st.label), crumb) +
       `<div class="layout"><div class="stack">
-        <section class="panel"><div class="panel-body">
-          <div class="muted small" style="margin-bottom:4px">Learning outcome for <strong>${esc(sk.name)}</strong></div>
-          <p class="outcome">${esc(m.outcome)}</p>
-          ${gap ? `<p class="small muted" style="margin:0">Linked to <span class="id">${gap.id}</span> for opportunity <span class="id">${esc(gap.opportunityId)}</span>.</p>` : ""}
-        </div></section>
+        <p class="outcome" style="margin:-8px 0 12px">${esc(m.outcome)}</p>
 
-        <section class="panel" aria-labelledby="s-learn"><div class="panel-head"><h2 id="s-learn">1. Learn</h2>${learned ? chip("info", "Activity complete") : chip("none", `${m.resource.minutes} min`)}</div>
-          <div class="panel-body"><div class="reading"><p class="muted" style="font-family:var(--sans);font-size:14px">${esc(m.resource.title)}</p>
+        <section class="panel" aria-labelledby="s-learn"><div class="panel-head"><h2 id="s-learn">1 · Learn</h2>${learned ? chip("info", "Activity complete") : chip("none", `${m.resource.minutes} min`)}</div>
+          <div class="panel-body"><div class="reading"><p class="muted" style="font-size:14px">${esc(m.resource.title)}</p>
             ${m.resource.parts.map(([h, p]) => `<h3>${esc(h)}</h3><p>${esc(p)}</p>`).join("")}</div>
-            <div class="btn-row" style="margin-top:14px">
-              ${learned ? `<span class="small muted">Marked complete on ${d(learned)}.${st.key === "demonstrated" ? "" : ` Your skill status is still <strong>${esc(st.label.toLowerCase())}</strong>.`}</span>`
-                : can("student") ? `<button class="btn" type="button" data-action="resource-done" data-module="${m.id}">Mark resource complete</button><span class="small muted">This completes the activity only.</span>` : locked("student", "mark the resource complete")}
+            <div class="btn-row" style="margin-top:18px">
+              ${learned ? `<span class="small muted">Completed ${d(learned)}.${st.key === "demonstrated" ? "" : ` Skill still <strong>${esc(st.label.toLowerCase())}</strong>.`}</span>`
+                : can("student") ? `<button class="btn" type="button" data-action="resource-done" data-module="${m.id}">Mark as read</button><span class="small muted">This completes the activity only.</span>` : locked("student", "mark the resource complete")}
             </div></div></section>
 
-        <section class="panel" id="task" aria-labelledby="s-task"><div class="panel-head"><h2 id="s-task">2. Practise on the board</h2><span class="tag sim">Simulated Jira board</span></div>
+        <section class="panel" id="task" aria-labelledby="s-task"><div class="panel-head"><h2 id="s-task">2 · Practise on the board</h2><span class="tag">Simulated Jira</span></div>
           <div class="panel-body"><p style="max-width:70ch">${esc(m.task)}</p>
           ${editable ? `<form class="btn-row" data-form="add-item" style="margin:4px 0 14px"><label class="sr-only" for="newsum">New work item summary</label><input class="input" id="newsum" name="summary" placeholder="New work item, e.g. Check missing gate times in the March extract" style="flex:1;min-width:240px"><button class="btn secondary" type="submit">Create work item</button></form>${ui.errors.item ? `<p class="small" style="color:var(--red);margin-top:-8px">${esc(ui.errors.item)}</p>` : ""}` : ""}
           ${boardHTML(S.board, editable)}
           ${!can("student") ? locked("student", "change the board") : locked6 ? `<p class="small muted" style="margin-top:10px">The board is locked while ${esc(sub.id)} is ${sub.status === "submitted" ? "with the reviewer" : "recorded as demonstrated"}.</p>` : ""}
           </div></section>
 
-        <section class="panel" aria-labelledby="s-sub"><div class="panel-head"><h2 id="s-sub">3. Submit evidence</h2>${sub ? `<span class="id">${sub.id} · ${sub.versions.length} version${sub.versions.length > 1 ? "s" : ""}</span>` : ""}</div>
+        <section class="panel" aria-labelledby="s-sub"><div class="panel-head"><h2 id="s-sub">3 · Submit evidence</h2>${sub ? `<span class="id">${sub.id} · ${sub.versions.length} version${sub.versions.length > 1 ? "s" : ""}</span>` : ""}</div>
           <div class="panel-body">
             ${lastRev && (sub.status === "revision" || sub.status === "not_yet") ? `<div class="feedback" style="margin:0 0 14px"><div class="fhead">${esc(lastRev.by)}, ${d(lastRev.at)}: ${sub.status === "revision" ? "revision requested" : "not yet demonstrated"}</div>${esc(lastRev.comment)}</div>` : ""}
             <h3 style="margin-bottom:6px">The reviewer will check</h3><ol class="checklist">${m.checklist.map((c) => `<li>${esc(c)}</li>`).join("")}</ol>
@@ -293,7 +289,7 @@
               : sub && sub.status === "demonstrated" ? notice("ok", `<strong>Demonstrated.</strong> Reviewed by ${esc(lastRev.by)} on ${d(lastRev.at)} and sent to your profile (P01).`)
               : locked("student", "submit evidence")}
           </div></section>
-      </div>${rail("Evidence history", versionsRail)}</div>`;
+      </div>${rail("History", versionsRail)}</div>`;
   }
 
   function historyItems(sub) {
@@ -306,10 +302,10 @@
   function pageReviewQueue() {
     const subs = [...S.submissions].sort((a, b) => (a.status === "submitted" ? -1 : 0) - (b.status === "submitted" ? -1 : 0));
     const label = { submitted: ["wait", "Awaiting review"], revision: ["warn", "Revision requested"], not_yet: ["warn", "Not yet demonstrated"], demonstrated: ["ok", "Demonstrated"] };
-    return head("Review queue", "Practical evidence waiting for a recorded decision. Oldest first.") +
-      `<div class="layout single"><section class="panel">${subs.length ? `<table class="table"><thead><tr><th>Evidence</th><th>Student</th><th>Skill</th><th>Version</th><th>Last submitted</th><th>Status</th></tr></thead><tbody>
+    return head("Review queue", "Evidence waiting for a decision.") +
+      `<div class="layout single"><section class="panel">${subs.length ? `<div class="panel-body" style="padding-top:20px"><table class="table"><thead><tr><th>Evidence</th><th>Student</th><th>Skill</th><th>Version</th><th>Last submitted</th><th>Status</th></tr></thead><tbody>
       ${subs.map((x) => `<tr><td><a class="id" href="#/submission/${x.id}">${x.id}</a></td><td>Layla Hassan</td><td>${esc(skillOf(x.skillId).name)}</td><td>${x.versions.length}</td><td>${d(x.versions.at(-1).at)}</td><td>${chip(label[x.status][0], label[x.status][1])}</td></tr>`).join("")}
-      </tbody></table>` : `<div class="empty"><h3>Nothing to review</h3><p class="muted">Submissions appear here when a student sends practical evidence.</p></div>`}</section></div>`;
+      </tbody></table></div>` : `<div class="empty"><h3>Nothing to review</h3><p class="muted">Submissions appear here when a student sends practical evidence.</p></div>`}</section></div>`;
   }
 
   function hints(board) {
@@ -332,19 +328,19 @@
     const blocks = [];
     sub.versions.forEach((v, i) => {
       blocks.push(`<div class="version ${i < sub.versions.length - 1 ? "superseded" : ""}"><div class="vhead"><span><strong>Version ${v.v}</strong>${i < sub.versions.length - 1 ? " (superseded, kept for the record)" : ""}</span><span>${d(v.at)}</span></div><p style="margin:0">${esc(v.explanation)}</p>
-        ${i === sub.versions.length - 1 ? `<details style="margin-top:10px" ${ui.open.board !== false ? "open" : ""}><summary class="small" style="cursor:pointer">Board at submission</summary><div style="margin-top:10px">${boardHTML(v.board, false)}</div></details>` : ""}</div>`);
+        ${i === sub.versions.length - 1 ? `<details class="more" data-key="sub-board" style="margin-top:10px" ${ui.open["sub-board"] ? "open" : ""}><summary class="small">Board at submission</summary><div style="margin-top:10px">${boardHTML(v.board, false)}</div></details>` : ""}</div>`);
       const r = sub.reviews[i];
       if (r) blocks.push(`<div class="feedback ${r.decision === "demonstrated" ? "note" : ""}"><div class="fhead">${esc(r.by)}, ${d(r.at)}: ${r.decision === "revision" ? "revision requested" : r.decision === "not_yet" ? "not yet demonstrated" : "demonstrated"} (${r.checklist.filter(Boolean).length}/${r.checklist.length} criteria)</div>${esc(r.comment)}</div>`);
     });
     const err = ui.errors.review;
-    return head(`${esc(sk.name)} evidence`, `Layla Hassan · <span class="id">${sub.id}</span> · module <span class="id">${m.id}</span>`, chip(skillStatus(sub.skillId).cls, skillStatus(sub.skillId).label), `<a href="#/review">Review queue</a> / <span class="id">${sub.id}</span>`) +
+    return head(`${esc(sk.name)} evidence`, `Layla Hassan · ${sub.id}`, chip(skillStatus(sub.skillId).cls, skillStatus(sub.skillId).label), `<a href="#/review">Review queue</a> / <span class="id">${sub.id}</span>`) +
       `<div class="layout"><div class="stack">
-        <section class="panel"><div class="panel-head"><h2>Submission and history</h2>${S.resources[m.id] ? chip("info", "Activity complete") : chip("warn", "Resource not completed")}</div><div class="panel-body">${blocks.join("")}</div></section>
-        <section class="panel"><div class="panel-head"><h2>Checklist decision</h2></div><div class="panel-body">
+        <section class="panel"><div class="panel-head"><h2>Submission</h2>${S.resources[m.id] ? chip("info", "Activity complete") : chip("warn", "Resource not completed")}</div><div class="panel-body">${blocks.join("")}</div></section>
+        <section class="panel"><div class="panel-head"><h2>Decision</h2></div><div class="panel-body">
           ${active && can("reviewer") ? `<form data-form="review" data-id="${sub.id}">
           <fieldset style="border:0;padding:0;margin:0"><legend class="sr-only">Assessment checklist</legend>
             ${m.checklist.map((c, i) => `<label class="check"><input type="checkbox" name="c${i}" ${prefill[i] ? "checked" : ""}><span>${esc(c)}</span></label>`).join("")}
-            <p class="small muted" style="margin:6px 0 14px">System hints, for the reviewer to confirm: ${h.map(esc).join("; ")}.</p>
+            <p class="small muted" style="margin:6px 0 16px">Hints: ${h.map(esc).join(" · ")}</p>
             <div class="field ${err ? "error" : ""}"><label for="rcomment">Comment to the student</label><textarea class="input" id="rcomment" name="comment" style="min-height:80px">${esc(ui.draft.comment || "")}</textarea>${err ? `<span class="err">${esc(err)}</span>` : '<span class="hint">Required when requesting a revision or recording not yet demonstrated.</span>'}</div>
             <div class="btn-row"><button class="btn" type="submit" name="decision" value="demonstrated">Record as demonstrated</button><button class="btn secondary" type="submit" name="decision" value="revision">Request revision</button><button class="btn danger" type="submit" name="decision" value="not_yet">Record not yet demonstrated</button></div>
           </fieldset></form>` : `
@@ -352,25 +348,25 @@
           <p class="small muted" style="margin:10px 0 0">${active ? "A decision is open." : sub.status === "demonstrated" ? "No decision is open. The outcome is recorded and was sent to P01." : "No decision is open. Waiting for the student to resubmit."}</p>
           ${!can("reviewer") && active ? locked("reviewer", "record a decision") : ""}`}
         </div></section>
-      </div>${rail("Decision record", historyItems(sub))}</div>`;
+      </div>${rail("History", historyItems(sub))}</div>`;
   }
 
   function pageGaps() {
     const err = ui.errors.gap;
-    return head("Skill gaps", "Gaps come from opportunity matching (P05) or are entered by the coordinator. Each open gap links Layla to a module.",
+    return head("Skill gaps", "Gaps come from matching (P05) or from the coordinator.",
       can("coordinator") ? `<button class="btn" type="button" data-action="import-gaps">Import gaps from P05</button>` : "") +
       `<div class="layout"><div class="stack">
-        <section class="panel">${S.gaps.length ? `<table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Opportunity</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
-          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div>${g.opportunityVersion ? `<div class="small muted">Traced to ${g.recommendationId ? esc(g.recommendationId) + " · " : ""}${esc(g.opportunityId)} v${g.opportunityVersion} · profile v${g.profileVersion}${g.gapType ? " · " + esc(g.gapType) : ""}</div>` : ""}</td><td class="id">${esc(g.opportunityId || "—")}</td><td>${g.source === "P05" ? '<span class="tag sim">P05 fixture</span>' : g.source === "match" ? '<span class="tag">Matching</span>' : '<span class="tag">Manual</span>'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
-          </tbody></table>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the synthetic P05 output or enter a gap by hand.</p></div>`}</section>
-        <section class="panel"><div class="panel-head"><h2>Enter a gap manually</h2></div><div class="panel-body">
-          ${can("coordinator") ? `<form data-form="manual-gap"><div class="grid-2">
+        <section class="panel">${S.gaps.length ? `<div class="panel-body" style="padding-top:20px"><table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
+          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div></td><td>${g.source === "P05" ? 'P05' : g.source === "match" ? 'Matching' : 'Manual'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
+          </tbody></table></div>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the synthetic P05 output or enter a gap by hand.</p></div>`}</section>
+        ${can("coordinator") ? `<section class="panel"><div class="panel-head"><h2>Add a gap</h2></div><div class="panel-body">
+          ${`<form data-form="manual-gap"><div class="grid-2">
             <div class="field"><label for="g-skill">Skill</label><select class="input" id="g-skill" name="skill">${SKILLS.map((k) => `<option value="${k.id}">${esc(k.name)}</option>`).join("")}</select></div>
             <div class="field"><label for="g-op">Opportunity (optional)</label><input class="input" id="g-op" name="op" placeholder="OP-028"></div></div>
             <div class="field ${err ? "error" : ""}"><label for="g-reason">Why this gap matters</label><input class="input" id="g-reason" name="reason" placeholder="e.g. Required for the role; no reviewed evidence">${err ? `<span class="err">${esc(err)}</span>` : ""}</div>
-            <button class="btn secondary" type="submit">Add gap for Layla</button></form>` : locked("coordinator", "add skill gaps")}
-        </div></section>
-      </div>${rail("Gap activity", S.events.filter((e) => /gap/i.test(e.text)).slice(-6).reverse().map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()) })))}</div>`;
+            <button class="btn secondary" type="submit">Add gap for Layla</button></form>`}
+        </div></section>` : ""}
+      </div>${rail("History", S.events.filter((e) => /gap/i.test(e.text)).slice(-6).reverse().map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()) })))}</div>`;
   }
 
   /* ================= P07 pages ================= */
@@ -382,40 +378,40 @@
     const p = S.placement;
     const readiness = S.handoffs.filter((h) => h.to === "P07").at(-1);
     const blocked = S.placementAttempts.at(-1);
-    return head("Placement", "The co-op record begins only when a placement is confirmed by the university. An accepted offer is not enough.") +
+    return head("Placement", "The co-op record starts once the university confirms the placement.") +
       `<div class="layout"><div class="stack">
       ${blocked && !p ? notice("warn", `<strong>${esc(blocked.placementId)} was not accepted.</strong> Its status is “offer accepted, awaiting university confirmation”. P07 records start only after a coordinator confirms the placement in P04.`) : ""}
       <section class="panel"><div class="panel-head"><h2>${p ? esc(p.employer) + ", " + esc(p.location) : "Waiting for P04"}</h2>${p ? chip("ok", "University confirmed") : chip("none", "No placement")}</div><div class="panel-body">
-        ${p ? `<dl class="kv"><dt>Placement</dt><dd class="id">${p.placementId}</dd><dt>Role</dt><dd>${esc(p.role)}</dd><dt>Period</dt><dd>${d(p.periodStart)} to ${d(p.periodEnd)}</dd><dt>Supervisor</dt><dd>${esc(p.supervisor)}</dd><dt>Academic advisor</dt><dd>${esc(p.advisor)}</dd><dt>Confirmed by</dt><dd>${esc(p.confirmedBy)}, ${d(p.confirmedAt)}</dd></dl>`
+        ${p ? `<dl class="kv"><dt>Role</dt><dd>${esc(p.role)}</dd><dt>Period</dt><dd>${d(p.periodStart)} to ${d(p.periodEnd)}</dd><dt>Supervisor</dt><dd>${esc(p.supervisor)}</dd><dt>Academic advisor</dt><dd>${esc(p.advisor)}</dd><dt>Confirmed by</dt><dd>${esc(p.confirmedBy)}, ${d(p.confirmedAt)}</dd></dl>`
           : `<p class="muted">Receive the synthetic placement record from P04 to start the co-op record.</p>
             ${can("coordinator") ? `<div class="btn-row"><button class="btn" type="button" data-action="placement-ok">Receive confirmed placement PL-028</button><button class="btn secondary" type="button" data-action="placement-bad">Try offer awaiting confirmation</button></div>` : locked("coordinator", "receive placements")}`}
       </div></section>
-      <section class="panel"><div class="panel-head"><h2>Preparation evidence from P06</h2><span class="tag">Optional input</span></div><div class="panel-body">
-        ${readiness ? `<p>Received ${d(readiness.at)}. Demonstrated before placement:</p><div class="ev-list">${readiness.payload.demonstrated.map((x) => `<span class="ev">${x.evidenceId} ${esc(skillOf(x.skillId).name)}</span>`).join("")}</div>${readiness.payload.inProgress.length ? `<p class="small muted" style="margin-top:10px">Still in progress: ${readiness.payload.inProgress.map((k) => esc(skillOf(k).name)).join(", ")}.</p>` : ""}`
+      <section class="panel"><div class="panel-head"><h2>Skills demonstrated before the placement</h2></div><div class="panel-body">
+        ${readiness ? `<div class="ev-list" style="margin-top:0">${readiness.payload.demonstrated.map((x) => `<span class="ev">${x.evidenceId} ${esc(skillOf(x.skillId).name)}</span>`).join("")}</div>${readiness.payload.inProgress.length ? `<p class="small muted" style="margin-top:10px">Still in progress: ${readiness.payload.inProgress.map((k) => esc(skillOf(k).name)).join(", ")}.</p>` : ""}`
           : `<p class="muted" style="margin:0">No readiness summary yet. It is sent from P06 when a reviewer records a demonstrated skill.</p>`}
       </div></section></div>
-      ${rail("Placement record", S.events.filter((e) => /placement|PL-0/i.test(e.text)).reverse().map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()), cls: /confirmed placement/i.test(e.text) ? "ok" : /blocked|not accepted/i.test(e.text) ? "warn" : "" })))}</div>`;
+      ${rail("History", S.events.filter((e) => /placement|PL-0/i.test(e.text)).reverse().map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()), cls: /confirmed placement/i.test(e.text) ? "ok" : /blocked|not accepted/i.test(e.text) ? "warn" : "" })))}</div>`;
   }
 
   function pageAgreement() {
     if (!S.placement) return needPlacement("Learning agreement");
     const a = S.agreement, agreed = a.status === "agreed", err = ui.errors.goal;
     const sign = (k) => a.signoffs[k] ? chip("ok", `Agreed ${d(a.signoffs[k])}`) : (can(k) && a.goals.length === 3 && !agreed ? `<button class="btn sm" type="button" data-action="sign" data-who="${k}">Agree as ${esc(PEOPLE[k].short)}</button>` : chip("none", "Not yet agreed"));
-    return head("Learning agreement", `Three goals for ${esc(PERIOD.label)}, each mapped to the programme’s learning outcomes. Locked once all three parties agree.`, agreed ? chip("ok", "Agreed") : chip("wait", `Draft, ${a.goals.length} of 3 goals`)) +
+    return head("Learning agreement", `Three goals for ${esc(PERIOD.label)}, agreed by Layla, her supervisor and her advisor.`, agreed ? chip("ok", "Agreed") : chip("wait", `Draft, ${a.goals.length} of 3 goals`)) +
       `<div class="layout"><div class="stack">
-      <section class="panel divided">${a.goals.length ? a.goals.map((g, i) => `<div class="skill"><div class="skill-top"><div><div class="id" style="margin-bottom:2px">${g.id}</div><h3 style="font-family:var(--serif);font-size:18px;font-weight:600">${esc(g.text)}</h3></div>${!agreed && can("student") ? `<button class="btn ghost sm" type="button" data-action="remove-goal" data-id="${g.id}">Remove</button>` : ""}</div>
-        <div class="ev-list">${g.outcomes.map((o) => `<span class="chip plain info">${o} ${esc(OUTCOMES.find((x) => x.id === o).name)}</span>`).join("")}</div></div>`).join("")
+      <section class="panel divided">${a.goals.length ? a.goals.map((g, i) => `<div class="skill"><div class="skill-top" style="margin-bottom:0"><div><div class="small muted" style="margin-bottom:2px">${g.id}</div><h3>${esc(g.text)}</h3></div>${!agreed && can("student") ? `<button class="btn ghost sm" type="button" data-action="remove-goal" data-id="${g.id}">Remove</button>` : ""}</div>
+        <div class="ev-list">${g.outcomes.map((o) => `<span class="chip info">${esc(OUTCOMES.find((x) => x.id === o).name)}</span>`).join("")}</div></div>`).join("")
         : `<div class="empty"><h3>No goals yet</h3><p class="muted">Layla drafts three goals; her supervisor and advisor then agree them.</p></div>`}</section>
       ${!agreed && a.goals.length < 3 ? `<section class="panel"><div class="panel-head"><h2>Add goal ${a.goals.length + 1} of 3</h2></div><div class="panel-body">
         ${can("student") ? `<form data-form="goal"><div class="field ${err ? "error" : ""}"><label for="goal-text">Goal</label><input class="input" id="goal-text" name="text" placeholder="e.g. Build a weekly on-time-performance dashboard the team uses">
           <fieldset style="border:0;padding:0;margin:10px 0 0"><legend class="label" style="font-size:13.5px;font-weight:500">Maps to learning outcomes</legend>${OUTCOMES.map((o) => `<label class="check" style="padding:4px 0"><input type="checkbox" name="lo" value="${o.id}"><span><span class="id">${o.id}</span> ${esc(o.name)}</span></label>`).join("")}</fieldset>
           ${err ? `<span class="err">${esc(err)}</span>` : ""}</div><button class="btn secondary" type="submit">Add goal</button></form>` : locked("student", "draft goals")}
       </div></section>` : ""}
-      <section class="panel"><div class="panel-head"><h2>Agreement</h2></div><div class="panel-body">
+      <section class="panel"><div class="panel-head"><h2>Sign-off</h2></div><div class="panel-body">
         <table class="table"><tbody>${["student", "supervisor", "advisor"].map((k) => `<tr><td><strong>${esc(PEOPLE[k].name)}</strong><div class="small muted">${esc(PEOPLE[k].role)}</div></td><td style="text-align:right">${sign(k)}</td></tr>`).join("")}</tbody></table>
         ${!agreed && a.goals.length < 3 ? '<p class="small muted" style="margin-top:8px">Sign-off opens when three goals are drafted.</p>' : ""}
       </div></section></div>
-      ${rail("Outcomes in this programme", [], `<ul style="list-style:none;padding:0;margin:0;display:grid;gap:10px">${OUTCOMES.map((o) => `<li class="small"><span class="id">${o.id}</span> ${esc(o.name)}</li>`).join("")}</ul><p class="small muted" style="margin:12px 0 0">Outcome set is configurable by the programme.</p>`)}</div>`;
+      ${rail("Programme outcomes", [], `<ul style="list-style:none;padding:0;margin:0;display:grid;gap:10px">${OUTCOMES.map((o) => `<li class="small"><span class="id">${o.id}</span> ${esc(o.name)}</li>`).join("")}</ul>`)}</div>`;
   }
 
   function logStatus(l) {
@@ -436,12 +432,12 @@
       l.feedback.forEach((f) => timeline.push({ t: f.at + "b", html: `<div class="feedback ${f.type === "note" ? "note" : ""}"><div class="fhead">${esc(f.by)}, ${d(f.at)}: ${f.type === "request" ? "feedback request" : "comment"}</div>${esc(f.text)}</div>` }));
       timeline.sort((a, b) => (a.t < b.t ? -1 : 1));
       return `<article class="skill" aria-label="${l.id}">
-        <div class="skill-top"><div><div class="small muted"><span class="id">${l.id}</span> · Week ${l.week}${p2 ? " of Period 2" : ""} · ${d(l.date)} · <span class="id">${l.goal}</span> ${esc(goal(l.goal) ? goal(l.goal).text : "")}</div></div><div>${p2 ? '<span class="tag">Next period</span>' : chip(c, t)}</div></div>
+        <div class="skill-top" style="margin-bottom:8px"><div><div class="small muted">Week ${l.week}${p2 ? " of Period 2" : ""} · ${d(l.date)} · ${l.goal}</div></div><div>${p2 ? '<span class="tag">Next period</span>' : chip(c, t)}</div></div>
         <p style="margin:0 0 8px;max-width:72ch">${esc(cur.text)}</p>
         <div class="ev-list">${cur.evidence.length ? cur.evidence.map((e) => `<span class="ev" title="${esc(evById(e) ? evById(e).title : "")}">${e}</span>`).join("") : '<span class="ev missing">No evidence attached</span>'}</div>
         ${open ? `<div style="margin-top:12px">${timeline.map((x) => x.html).join("")}</div>` : ""}
         <div class="btn-row" style="margin-top:12px">
-          <button class="btn ghost sm" type="button" data-action="toggle" data-id="${l.id}" aria-expanded="${!!open}">${open ? "Hide history" : `Show history (${l.versions.length} version${l.versions.length > 1 ? "s" : ""}, ${l.feedback.length} comment${l.feedback.length === 1 ? "" : "s"})`}</button>
+          <button class="btn ghost sm" type="button" data-action="toggle" data-id="${l.id}" aria-expanded="${!!open}">${open ? "Hide history" : `History (${l.versions.length + l.feedback.length})`}</button>
           ${!p2 && can("supervisor") && (l.status === "submitted" || l.status === "revised") && !ui.open["req-" + l.id] ? `<button class="btn sm" type="button" data-action="log-ack" data-id="${l.id}">Acknowledge</button><button class="btn secondary sm" type="button" data-action="log-request" data-id="${l.id}">Request more detail</button>` : ""}
           ${can("student") && l.status === "feedback" ? `<button class="btn sm" type="button" data-action="log-revise" data-id="${l.id}">Revise entry</button>` : ""}
         </div>
@@ -449,14 +445,15 @@
         ${ui.open["rev-" + l.id] ? `<form data-form="log-revise" data-id="${l.id}" style="margin-top:12px"><div class="field ${ui.errors["rev-" + l.id] ? "error" : ""}"><label for="rev-${l.id}">Revised entry</label><textarea class="input" id="rev-${l.id}" name="text">${esc(cur.text)}</textarea>${ui.errors["rev-" + l.id] ? `<span class="err">${esc(ui.errors["rev-" + l.id])}</span>` : '<span class="hint">The original stays in the history.</span>'}</div><button class="btn" type="submit">Save revision</button></form>` : ""}
       </article>`;
     };
-    return head("Logbook", "Weekly entries linked to agreed goals and evidence. Feedback, revisions and originals are all kept.") +
+    return head("Logbook", "One entry a week, linked to a goal and evidence.") +
       `<div class="layout"><div class="stack">
-        ${can("student") ? `<section class="panel"><div class="panel-head"><h2>New entry</h2><span class="small muted">Week ${weekOf(S.today) || "—"}, ${d(S.today)}</span></div><div class="panel-body"><form data-form="log">
+        ${can("student") && !(ui.open["log-new"] || err) ? `<div><button class="btn" type="button" data-action="toggle" data-id="log-new">New entry</button></div>` : ""}
+        ${can("student") && (ui.open["log-new"] || err) ? `<section class="panel"><div class="panel-head"><h2>New entry</h2><span class="small muted">Week ${weekOf(S.today) || "—"}, ${d(S.today)}</span></div><div class="panel-body"><form data-form="log">
           <div class="field"><label for="l-goal">Goal</label><select class="input" id="l-goal" name="goal">${S.agreement.goals.map((g) => `<option value="${g.id}">${g.id} ${esc(g.text)}</option>`).join("")}</select></div>
           <div class="field ${err ? "error" : ""}"><label for="l-text">What did you do and learn?</label><textarea class="input" id="l-text" name="text"></textarea>${err ? `<span class="err">${esc(err)}</span>` : ""}</div>
           <div class="grid-2"><div class="field"><label for="l-ev">Link existing evidence</label><select class="input" id="l-ev" name="ev"><option value="">None</option>${S.evidence.filter((e) => e.date <= S.today).map((e) => `<option value="${e.id}">${e.id} ${esc(e.title)}</option>`).join("")}</select></div>
           <div class="field"><label for="l-new">Or add new evidence</label><input class="input" id="l-new" name="newev" placeholder="e.g. Meeting notes, 18 Mar"></div></div>
-          <button class="btn" type="submit">Submit entry</button></form></div></section>` : ""}
+          <div class="btn-row"><button class="btn" type="submit">Submit entry</button><button class="btn ghost" type="button" data-action="toggle" data-id="log-new">Cancel</button></div></form></div></section>` : ""}
         <section class="panel divided">${logs.map(entry).join("")}</section>
       </div>${rail("Evidence library", [], `<ul style="list-style:none;padding:0;margin:0;display:grid;gap:10px">${S.evidence.map((e) => `<li class="small"><span class="id">${e.id}</span> ${esc(e.title)}<div class="muted">${d(e.date)}${e.date > PERIOD.end ? " · after Period 1" : ""}</div></li>`).join("")}</ul>`)}</div>`;
   }
@@ -473,11 +470,11 @@
       : missing.length ? { cls: "", html: `<strong>${missing.length} outcome${missing.length > 1 ? "s have" : " has"} no linked evidence.</strong> ${missing.map((o) => o.id).join(", ")} cannot be judged yet.` }
       : { cls: "done", html: "<strong>Every outcome has linked evidence.</strong>" };
     const editLO = ui.open.editLO, jerr = ui.errors.judge, aerr = ui.errors.action;
-    return head("Progress and actions", `${esc(PERIOD.label)}, week ${wk > 0 ? wk : "—"} of ${weekOf(PERIOD.end)}. Each outcome judgement links to evidence; missing evidence is shown, not hidden.`) + nextStrip(nx) +
+    return head("Progress and actions", `${esc(PERIOD.label)}, week ${wk > 0 ? wk : "—"} of ${weekOf(PERIOD.end)}.`) + nextStrip(nx) +
       `<div class="layout single"><div class="stack">
-      <section class="panel"><div class="panel-head"><h2>Outcomes and evidence</h2><span class="small muted">Judged by ${esc(PEOPLE.advisor.name)}</span></div><div class="divided" style="margin-top:10px">
+      <section class="panel"><div class="panel-head"><h2>Learning outcomes</h2><span class="small muted">Judged by ${esc(PEOPLE.advisor.name)}</span></div><div class="divided" style="margin-top:10px">
         ${OUTCOMES.map((o) => { const j = S.judgements[o.id] || { level: "none", evidence: [] }; const [c, t] = LEVEL[j.level];
-          return `<div class="outcome-row"><div class="lo">${o.id}</div><div><div style="font-weight:500">${esc(o.name)}</div><div class="small muted">Goals ${goalsFor(o.id).join(", ") || "none"}</div>
+          return `<div class="outcome-row"><div class="lo">${o.id}</div><div><div style="font-weight:500">${esc(o.name)}</div>
             <div class="ev-list">${j.evidence.length ? j.evidence.map((e) => `<span class="ev" title="${esc(evById(e) ? evById(e).title : "")}">${e}</span>`).join("") : '<span class="ev missing">Evidence missing</span>'}</div>
             ${editLO === o.id ? `<form data-form="judge" data-lo="${o.id}" style="margin-top:12px"><div class="field"><label for="lvl">Judgement</label><select class="input" id="lvl" name="level" style="max-width:260px">${Object.entries(LEVEL).map(([k, v]) => `<option value="${k}" ${k === j.level ? "selected" : ""}>${v[1]}</option>`).join("")}</select></div>
               <fieldset style="border:0;padding:0;margin:0 0 10px"><legend class="label" style="font-size:13.5px;font-weight:500">Evidence that supports it</legend>${S.evidence.filter((e) => e.date <= S.today && inPeriod(e) || e.source === "P06").map((e) => `<label class="check" style="padding:3px 0"><input type="checkbox" name="ev" value="${e.id}" ${j.evidence.includes(e.id) ? "checked" : ""}><span><span class="id">${e.id}</span> ${esc(e.title)}</span></label>`).join("")}</fieldset>
@@ -485,26 +482,26 @@
           </div><div style="text-align:right">${chip(c, t)}${j.by ? `<div class="small muted" style="margin-top:4px">${d(j.at)}</div>` : ""}${can("advisor") && editLO !== o.id ? `<div style="margin-top:6px"><button class="btn ghost sm" type="button" data-action="judge" data-lo="${o.id}">Update</button></div>` : ""}</div></div>`; }).join("")}
       </div>${!can("advisor") ? `<div class="panel-body" style="padding-top:0">${locked("advisor", "record outcome judgements")}</div>` : ""}</section>
 
-      <div class="two-col">
+      <div class="${can("advisor") ? "two-col" : ""}">
         <section class="panel"><div class="panel-head"><h2>Host milestones</h2></div><div class="panel-body">
           ${S.milestones.map((m) => `<label class="check"><input type="checkbox" data-change="milestone" data-id="${m.id}" ${m.done ? "checked" : ""} ${can("supervisor") ? "" : "disabled"}><span>${esc(m.text)}${m.done ? `<span class="small muted"> · ${d(m.at)}</span>` : ""}</span></label>`).join("")}
-          <div style="margin-top:10px">${notice("rule", "Milestones track the host’s plan. Completing one does not demonstrate an academic outcome on its own.")}</div>
+          <p class="foot" style="margin-top:12px">Milestones track the host’s plan. Completing one does not demonstrate an academic outcome on its own.</p>
           ${!can("supervisor") ? locked("supervisor", "update milestones") : ""}
         </div></section>
-        <section class="panel"><div class="panel-head"><h2>Add a support action</h2></div><div class="panel-body">
-          ${can("advisor") ? `<form data-form="action"><div class="field"><label for="a-text">Action</label><input class="input" id="a-text" name="text" placeholder="e.g. Share meeting notes as evidence for LO3"></div>
+        ${can("advisor") ? `<section class="panel"><div class="panel-head"><h2>Add a support action</h2></div><div class="panel-body">
+          ${`<form data-form="action"><div class="field"><label for="a-text">Action</label><input class="input" id="a-text" name="text" placeholder="e.g. Share meeting notes as evidence for LO3"></div>
             <div class="grid-2"><div class="field"><label for="a-owner">Owner</label><select class="input" id="a-owner" name="owner">${["student", "supervisor", "advisor", "coordinator"].map((k) => `<option value="${k}">${esc(PEOPLE[k].name)}</option>`).join("")}</select></div>
             <div class="field"><label for="a-due">Due date</label><input class="input" type="date" id="a-due" name="due"></div></div>
-            ${aerr ? `<p class="small" style="color:var(--red);font-weight:500">${esc(aerr)}</p>` : ""}<button class="btn secondary" type="submit">Add action</button></form>` : `<p class="muted small">Support actions are agreed at the midpoint review.</p>${locked("advisor", "add support actions")}`}
-        </div></section>
+            ${aerr ? `<p class="small" style="color:var(--red);font-weight:500">${esc(aerr)}</p>` : ""}<button class="btn secondary" type="submit">Add action</button></form>`}
+        </div></section>` : ""}
       </div>
 
-      <section class="panel"><div class="panel-head"><h2>Support actions</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px">
+      <section class="panel"><div class="panel-head"><h2>Support actions</h2></div><div class="panel-body" style="padding-top:18px">
         <table class="table"><thead><tr><th>Action</th><th>Owner</th><th>Due</th><th>Status</th><th>Closure evidence</th></tr></thead><tbody>
         ${S.actions.map((a) => { const od = isOverdue(a); const mine = S.role === a.owner && a.status === "open";
-          return `<tr class="${od ? "is-overdue" : ""}"><td><span class="id">${a.id}</span><div>${esc(a.text)}</div></td><td>${esc(PEOPLE[a.owner].name)}</td><td>${d(a.due)}${od ? `<div class="small" style="color:var(--red)">${days(a.due, S.today)} days late</div>` : ""}</td>
+          return `<tr class="${od ? "is-overdue" : ""}"><td>${esc(a.text)}</td><td>${esc(PEOPLE[a.owner].name)}</td><td style="white-space:nowrap">${d(a.due)}${od ? `<div class="small" style="color:var(--red)">${days(a.due, S.today)} days late</div>` : ""}</td>
           <td>${a.status === "closed" ? chip("ok", "Closed") : od ? chip("warn", "Overdue") : chip("wait", "Open")}</td>
-          <td>${a.status === "closed" ? `${esc(a.closure)}<div class="small muted">${d(a.closedAt)}</div>` : mine ? (ui.open["close-" + a.id] ? `<form data-form="close-action" data-id="${a.id}"><label class="sr-only" for="cl-${a.id}">Closure evidence</label><input class="input" id="cl-${a.id}" name="closure" placeholder="What shows it is done?" style="margin-bottom:6px">${ui.errors["close-" + a.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["close-" + a.id])}</div>` : ""}<button class="btn sm" type="submit">Close action</button></form>` : `<button class="btn secondary sm" type="button" data-action="close-open" data-id="${a.id}">Close with evidence</button>`) : '<span class="muted small">Owner closes with evidence</span>'}</td></tr>`; }).join("")}
+          <td>${a.status === "closed" ? `${esc(a.closure)}<div class="small muted">${d(a.closedAt)}</div>` : mine ? (ui.open["close-" + a.id] ? `<form data-form="close-action" data-id="${a.id}"><label class="sr-only" for="cl-${a.id}">Closure evidence</label><input class="input" id="cl-${a.id}" name="closure" placeholder="What shows it is done?" style="margin-bottom:6px">${ui.errors["close-" + a.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["close-" + a.id])}</div>` : ""}<button class="btn sm" type="submit">Close action</button></form>` : `<button class="btn secondary sm" type="button" data-action="close-open" data-id="${a.id}">Close</button>`) : '<span class="muted small">—</span>'}</td></tr>`; }).join("")}
         </tbody></table></div></section>
       </div></div>`;
   }
@@ -527,15 +524,15 @@
           ${ferr && ferr.rule ? `<p class="small" style="color:var(--red);font-weight:500">${esc(ferr.rule)}</p>` : ""}
           <button class="btn" type="submit">Record final review</button></form>`
       : `<p class="muted">Not recorded yet.</p>${!can("advisor") ? locked("advisor", "record the academic judgement") : ""}`;
-    return head("Final review", `${esc(PERIOD.label)}: ${d(PERIOD.start)} to ${d(PERIOD.end)}. Employer feedback and the academic judgement are recorded separately.`, f.advisor ? chip("ok", "Recorded") : open ? chip("wait", "Open") : chip("none", "Opens " + d(PERIOD.end))) +
-      (!open ? nextStrip({ cls: "", html: `<strong>The final review opens at the end of ${esc(PERIOD.label)} on ${d(PERIOD.end)}.</strong> Until then, use Progress and actions for the midpoint review.` }) : "") +
+    return head("Final review", `${esc(PERIOD.label)} · ${d(PERIOD.start)} to ${d(PERIOD.end)}`, f.advisor ? chip("ok", "Recorded") : open ? chip("wait", "Open") : chip("none", "Opens " + d(PERIOD.end))) +
+      (!open ? nextStrip({ cls: "", html: `<strong>The final review opens at the end of ${esc(PERIOD.label)}</strong> on ${d(PERIOD.end)}.` }) : "") +
       `<div class="layout single"><div class="stack">
       <div class="two-col">
-        <section class="voice employer" aria-labelledby="v-emp"><h3 id="v-emp">Employer feedback</h3><div class="who">${esc(PEOPLE.supervisor.name)}, workplace supervisor, Emirates Group</div>${empHTML}</section>
-        <section class="voice" aria-labelledby="v-adv"><h3 id="v-adv">Academic judgement</h3><div class="who">${esc(PEOPLE.advisor.name)}, academic advisor · not an official grade</div>${advHTML}</section>
+        <section class="voice employer" aria-labelledby="v-emp"><h3 id="v-emp">Employer feedback</h3><div class="who">${esc(PEOPLE.supervisor.name)} · Emirates Group</div>${empHTML}</section>
+        <section class="voice" aria-labelledby="v-adv"><h3 id="v-adv">Academic judgement</h3><div class="who">${esc(PEOPLE.advisor.name)} · not an official grade</div>${advHTML}</section>
       </div>
       ${later.length ? `<section class="panel"><div class="panel-head"><h2>Evidence outside this period</h2></div><div class="panel-body"><p class="small muted">Dated after ${d(PERIOD.end)}. Not counted towards ${esc(PERIOD.label)} and not shown as achieved.</p><div class="ev-list">${later.map((e) => `<span class="ev excluded" title="${esc(e.title)}">${e.id} ${esc(e.title)}, ${d(e.date)}</span>`).join("")}</div></div></section>` : ""}
-      <section class="panel"><div class="panel-head"><h2>Trace: goal G1 through the period</h2></div><div class="panel-body">${chainHTML(traceG1(), "Goal G1 trace")}</div></section>
+      <section class="panel"><div class="panel-head"><h2>Goal G1 through the period</h2></div><div class="panel-body">${chainHTML(traceG1(), "Goal G1 trace")}</div></section>
       </div></div>`;
   }
 
@@ -566,15 +563,15 @@
       ["Simulated", "P05 gaps and P04 placements (fixtures); P01 receiving endpoint; the Jira board; the demo date; single sign-on (role switcher instead)"],
       ["Deferred", "Content for the SQL and visualisation modules; notifications; cohort dashboard; Moodle competency integration; live Jira"]
     ];
-    return head("Handoffs and data", "Interfaces with other teams, every payload sent, and the full event log.",
-      `<div class="btn-row"><button class="btn secondary" type="button" data-action="export">Download records (JSON)</button>${can("coordinator") ? `<button class="btn" type="button" data-action="send-readiness">Send readiness summary to P07</button>` : ""}</div>`) +
+    const fold = (key, title, body) => `<details class="more" data-key="${key}" ${ui.open[key] ? "open" : ""}><summary>${title}</summary><section class="panel"><div class="panel-body" style="padding-top:20px">${body}</div></section></details>`;
+    return head("Handoffs and data", "What we exchange with other teams.",
+      `<div class="btn-row">${can("coordinator") ? `<button class="btn secondary sm" type="button" data-action="send-readiness">Send readiness to P07</button>` : ""}<button class="btn secondary sm" type="button" data-action="export">Download JSON</button></div>`) +
       `<div class="layout single"><div class="stack">
-      <section class="panel"><div class="panel-head"><h2>Interface agreements</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>Direction</th><th>Record</th><th>Fields</th><th>Connection</th><th>Rule</th></tr></thead><tbody>${ifaces.map((r) => `<tr><td class="id" style="white-space:nowrap">${r[0]}</td><td>${r[1]}</td><td class="small">${r[2]}</td><td><span class="tag ${/Fixture/.test(r[3]) ? "sim" : ""}">${r[3]}</span></td><td class="small">${r[4]}</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="panel"><div class="panel-head"><h2>Payloads sent</h2><span class="small muted">${S.handoffs.length} total</span></div><div class="panel-body">
-        ${S.handoffs.length ? S.handoffs.slice().reverse().map((h) => `<div style="margin-bottom:14px"><div class="small"><span class="id">${h.id}</span> to <strong>${h.to}</strong> on ${d(h.at)} ${chip("ok", "Sent")}</div><pre class="payload">${esc(JSON.stringify(h.payload, null, 2))}</pre></div>`).join("") : '<p class="muted">Nothing sent yet. A demonstrated decision sends a record to P01.</p>'}
-      </div></section>
-      <section class="panel"><div class="panel-head"><h2>What is working, simulated or deferred</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><tbody>${features.map((f) => `<tr><td style="width:120px"><span class="tag ${f[0] === "Simulated" ? "sim" : f[0] === "Deferred" ? "def" : ""}">${f[0]}</span></td><td class="small">${f[1]}</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="panel"><div class="panel-head"><h2>Event log</h2><span class="small muted">${S.events.length} events</span></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th style="width:120px">Date</th><th style="width:180px">Actor</th><th>Event</th></tr></thead><tbody>${S.events.slice().reverse().map((e) => `<tr><td>${d(e.at)}</td><td>${esc(e.actor)}</td><td>${esc(e.text)}</td></tr>`).join("")}</tbody></table></div></section>
+      <section class="panel"><div class="panel-body" style="padding-top:20px"><table class="table fixed"><colgroup><col style="width:120px"><col><col style="width:160px"></colgroup><thead><tr><th>Direction</th><th>Record</th><th>Connection</th></tr></thead><tbody>${ifaces.map((r) => `<tr><td style="white-space:nowrap;font-weight:500">${r[0]}</td><td>${r[1]}<div class="small muted" style="margin-top:2px">${r[4]}</div></td><td><span class="tag" title="${esc(r[3])}">${esc(r[3].replace(/ \(.*\)$/, ""))}</span></td></tr>`).join("")}</tbody></table></div></section>
+      ${fold("rec-fields", "Fields in each record", `<table class="table fixed"><colgroup><col style="width:200px"><col></colgroup><tbody>${ifaces.map((r) => `<tr><td>${r[0]} · ${r[1]}</td><td class="small id" style="color:var(--ink-2)">${r[2]}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("rec-payloads", `Payloads sent (${S.handoffs.length})`, S.handoffs.length ? S.handoffs.slice().reverse().map((h) => `<div style="margin-bottom:16px"><div class="small">${h.id} to <strong>${h.to}</strong> · ${d(h.at)}</div><pre class="payload">${esc(JSON.stringify(h.payload, null, 2))}</pre></div>`).join("") : '<p class="muted">Nothing sent yet. A demonstrated decision sends a record to P01.</p>')}
+      ${fold("rec-scope", "What is working, simulated or deferred", `<table class="table fixed"><colgroup><col style="width:120px"><col></colgroup><tbody>${features.map((f) => `<tr><td style="font-weight:500">${f[0]}</td><td class="small" style="color:var(--ink-2)">${f[1]}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("rec-log", `Event log (${S.events.length})`, `<table class="table fixed"><colgroup><col style="width:120px"><col style="width:170px"><col></colgroup><tbody>${S.events.slice().reverse().map((e) => `<tr><td class="muted">${d(e.at)}</td><td>${esc(e.actor)}</td><td>${esc(e.text)}</td></tr>`).join("")}</tbody></table>`)}
       </div></div>`;
   }
 
@@ -583,7 +580,7 @@
   /* ================= Dialogs ================= */
   function settingsDialog() {
     return `<dialog id="settings" aria-labelledby="set-title"><div class="panel-body">
-      <h2 id="set-title" style="margin-bottom:6px">Demo scenarios</h2><p class="small muted">Loading a scenario replaces the records saved in this browser.</p>
+      <h2 id="set-title" style="margin-bottom:6px">Demo scenarios</h2><p class="small muted">Loading a scenario replaces the records saved in this browser. All data is synthetic and not connected to MBZUAI systems.</p>
       ${Object.entries(PRESETS).map(([k, p]) => `<div class="preset"><div><strong>${esc(p.label)}</strong>${S.preset === k ? ' <span class="small muted">(loaded)</span>' : ""}<div class="small muted">${esc(p.note)}</div></div><button class="btn secondary sm" type="button" data-action="preset" data-preset="${k}">Load</button></div>`).join("")}
       <form data-form="date" style="margin-top:16px;border-top:1px solid var(--line-2);padding-top:14px"><div class="field"><label for="demo-date">Demo date</label><div class="btn-row"><input class="input" type="date" id="demo-date" name="date" value="${S.today}" style="max-width:200px"><button class="btn secondary sm" type="submit">Set date</button></div><span class="hint">Use this to show overdue actions or open the final review.</span></div></form>
       <div class="btn-row" style="justify-content:flex-end;margin-top:6px"><button class="btn ghost" type="button" data-action="close-settings">Close</button></div></div></dialog>`;
@@ -614,22 +611,34 @@
     return base;
   }
 
+  /* The assistant's real reasoning for one answer: what it searched, the closest entries, and why it answered or handed off. */
+  function thoughtSteps(m) {
+    const r = m.res, top = (r.ranked || []).map((x) => `${x.id} ${Number(x.score).toFixed(2)}`).join(" · ");
+    const last = r.kind === "answer"
+      ? (r.guard === "privacy" ? "About another student, so the privacy rule applies" : `Best match ${r.faqId} clears the ${IPP_AI.THRESHOLD} threshold`)
+      : r.guard === "policy" ? "Policy topic with no approved source" : "Not confident enough to answer";
+    return ["Reading your question", `Searching ${FAQ.length} approved sources`, top ? `Closest: ${top}` : "No close entries found", last];
+  }
+  const thoughtHTML = (m) => `<details class="thought"><summary>${m.thinkMs ? `Thought for ${(m.thinkMs / 1000).toFixed(1)} s` : "How I answered"}</summary><ol>${thoughtSteps(m).map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
+
   function askHTML(embed) {
     const msgs = S.chat.map((m) => {
       const user = `<div class="msg user"><div class="bubble">${esc(m.q)}</div><div class="meta">${esc(m.by)} · ${d(m.at)}</div></div>`;
       let bot;
       if (m.res.kind === "answer") {
         const f = faqById(m.res.faqId);
-        bot = `<div class="msg bot"><div class="bubble"><p>${esc(f.a)}</p>
-          <div class="src"><span class="tag">Approved source</span> <span class="id">${f.id}</span> · ${esc(f.source)} · match score ${m.res.score.toFixed(2)}${m.res.guard === "privacy" ? " · privacy rule" : ""}</div>
-          <div class="btn-row" style="margin-top:8px">${f.link && !embed ? `<a class="btn secondary sm" href="${f.link}">Open the related page</a>` : ""}
-          ${m.flagged ? `<span class="small muted">Sent to the coordinator as ${esc(m.flagged)}</span>` : `<button class="btn ghost sm" type="button" data-action="chat-flag" data-id="${m.id}">Not what I asked: send to a coordinator</button>`}</div></div></div>`;
+        bot = `<div class="msg bot">${thoughtHTML(m)}<div class="bubble"><p>${esc(f.a)}</p>
+          <div class="src" title="Match score ${m.res.score.toFixed(2)}">Approved source · ${f.id} · ${esc(f.source)}${m.res.guard === "privacy" ? " · privacy rule" : ""}</div>
+          <div class="btn-row" style="margin-top:8px">${f.link && !embed ? `<a class="btn secondary sm" href="${f.link}">Open page</a>` : ""}
+          ${m.flagged ? `<span class="small muted">Sent to a coordinator</span>` : `<button class="btn ghost sm" type="button" data-action="chat-flag" data-id="${m.id}">Not what you asked? Ask a person</button>`}</div></div></div>`;
       } else {
         const h = S.handoffQ.find((x) => x.id === m.handoffId);
-        bot = `<div class="msg bot handoff"><div class="bubble"><p><strong>I don’t have an approved answer for this, so I won’t guess.</strong> I have sent your question to ${esc(PEOPLE.coordinator.name)} (co-op coordinator) as <span class="id">${esc(m.handoffId)}</span>.</p>
+        bot = `<div class="msg bot handoff">${thoughtHTML(m)}<div class="bubble"><p><strong>I don’t have an approved answer for this, so I won’t guess.</strong> I have sent your question to ${esc(PEOPLE.coordinator.name)} (co-op coordinator) as <span class="id">${esc(m.handoffId)}</span>.</p>
           <div class="src">Why: ${esc(m.res.reason)}</div></div></div>`;
-        if (h && h.status === "answered") bot += `<div class="msg bot human"><div class="bubble"><div class="fhead small muted">${esc(h.by)}, co-op coordinator · ${d(h.answeredAt)}</div><p>${esc(h.reply)}</p><div class="src"><span class="tag">Human answer</span> Not yet part of the approved FAQ.</div></div></div>`;
+        if (h && h.status === "answered") bot += `<div class="msg bot human"><div class="bubble"><div class="fhead small muted">${esc(h.by)}, co-op coordinator · ${d(h.answeredAt)}</div><p>${esc(h.reply)}</p><div class="src">Human answer · not yet in the approved FAQ</div></div></div>`;
       }
+      if (ui.anim && ui.anim.id === m.id && !ui.anim.started)
+        return user + `<div class="msg bot thinking" id="thinking"><div class="bubble"><div class="think-head"><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>Thinking</div><ol class="think-steps"></ol></div></div><div class="anim-target" hidden>${bot}</div>`;
       return user + bot;
     }).join("");
     const empty = `<div class="msg bot"><div class="bubble"><p>Hi ${esc(PEOPLE.student.short)}. I answer questions about internship matching, preparation and co-op progress, using only approved sources. I can’t make decisions or approve placements.</p></div></div>`;
@@ -638,41 +647,46 @@
         <input class="input" id="askq" name="q" autocomplete="off" placeholder="Ask about matching, preparation or your co-op" value="${esc(ui.draft.ask || "")}">
         <button class="btn" type="submit">Ask</button></form>
       ${ui.errors.ask ? `<p class="small" style="color:var(--red);margin:6px 0 0">${esc(ui.errors.ask)}</p>` : ""}
-      <div class="suggest" aria-label="Suggested questions">${AI_SUGGESTED.map((q) => `<button type="button" class="pill" data-action="ask" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>`;
+      <div class="suggest" aria-label="Suggested questions">${AI_SUGGESTED.map((q) => `<button type="button" class="pill" data-action="ask" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+      <p class="foot" style="margin-top:14px;font-size:12px">Decision support only. It can’t approve placements, change records or discuss other students.</p>`;
   }
 
   function pageAssistant() {
     const queue = S.handoffQ.slice().reverse();
-    const queueHTML = `<section class="panel"><div class="panel-head"><h2>Questions for a person</h2><span class="small muted">${openHandoffs()} open</span></div><div class="panel-body">
-      ${queue.length ? `<table class="table"><thead><tr><th>ID</th><th>Question</th><th>Why it came here</th><th>Status</th></tr></thead><tbody>${queue.map((h) => `<tr>
-        <td class="id">${h.id}<div class="small muted">${d(h.at)}</div></td><td>${esc(h.q)}<div class="small muted">from ${esc(h.from)}</div></td><td class="small">${esc(h.reason)}</td>
+    /* While the demo animation runs, hold back the question it is about to hand over. */
+    const held = ui.anim && !ui.anim.started ? (S.chat.find((x) => x.id === ui.anim.id) || {}).handoffId : null;
+    const holdAll = held && queue.length === 1 && !can("coordinator");
+    const queueHTML = `<section class="panel${holdAll ? " reveal-wait" : ""}"${holdAll ? " data-hold" : ""}><div class="panel-head"><h2>Questions for a person</h2><span class="small muted" data-open-count>${openHandoffs() - (held ? 1 : 0)} open</span></div><div class="panel-body" style="padding-top:18px">
+      ${queue.length ? `<table class="table fixed"><colgroup><col><col style="width:46%"></colgroup><thead><tr><th>Question</th><th>Status</th></tr></thead><tbody>${queue.map((h) => `<tr${h.id === held ? ' class="reveal-wait" data-hold' : ""}>
+        <td>${esc(h.q)}<div class="small muted" style="margin-top:2px">${esc(h.from)} · ${d(h.at)} · ${esc(h.reason)}</div></td>
         <td>${h.status === "answered" ? `${chip("ok", "Answered")}<div class="small" style="margin-top:6px">${esc(h.reply)}</div>` : can("coordinator") ? `<form data-form="handoff-reply" data-id="${h.id}"><label class="sr-only" for="hr-${h.id}">Reply</label><textarea class="input" id="hr-${h.id}" name="reply" style="min-height:60px" placeholder="Reply to the student"></textarea>${ui.errors["hr-" + h.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["hr-" + h.id])}</div>` : ""}<button class="btn sm" type="submit" style="margin-top:6px">Send reply</button></form>` : chip("wait", "With coordinator")}</td></tr>`).join("")}</tbody></table>`
         : `<p class="muted small">No questions have been handed over yet.</p>`}
       ${can("coordinator") ? "" : locked("coordinator", "answer handed-over questions")}</div></section>`;
+    const showQueue = can("coordinator") || queue.length;
     const embed = `&lt;iframe src="https://lizhengxi25.github.io/waypoint/#/embed"\n  title="IPP co-op assistant" width="380" height="600"&gt;&lt;/iframe&gt;`;
-    return head("Ask the co-op assistant", `Answers come only from ${FAQ.length} approved entries, and each answer shows its source. If the assistant is not sure, or the question is about a policy it has no source for, it hands the question to the co-op coordinator instead of guessing.`,
-      `<button class="btn secondary sm" type="button" data-action="chat-clear">Clear conversation</button>`) +
+    return head("Ask the co-op assistant", `Answers come only from ${FAQ.length} approved sources. Anything else goes to a person.`,
+      S.chat.length ? `<button class="btn ghost sm" type="button" data-action="chat-clear">Clear</button>` : "") +
       `<div class="layout"><div class="stack">
         ${can("coordinator") ? queueHTML : ""}
-        <section class="panel" aria-label="Conversation"><div class="panel-body">${notice("rule", "<strong>Decision support only.</strong> The assistant cannot approve placements, change records or answer questions about other students.")}<div style="margin-top:14px">${askHTML(false)}</div></div></section>
-        ${can("coordinator") ? "" : queueHTML}
+        <section class="panel" aria-label="Conversation"><div class="panel-body" style="padding-top:24px">${askHTML(false)}</div></section>
+        ${can("coordinator") || !showQueue ? "" : queueHTML}
       </div>
-      <aside class="rail"><section class="panel"><div class="panel-head"><h2 style="font-size:16px">How it works</h2></div><div class="panel-body small">
+      <details class="more" data-key="as-how" ${ui.open["as-how"] ? "open" : ""}><summary>How it works</summary><section class="panel"><div class="panel-body small" style="padding-top:20px">
         <ol class="steps"><li>Your question is matched against the approved entries (synonyms included, e.g. “co-op” = “internship”).</li>
         <li>If the best entry scores at least ${IPP_AI.THRESHOLD} and shares two key terms, its approved text is shown word for word.</li>
         <li>Policy topics with no source (pay, GPA, visas, credits, remote work…) and low-confidence questions go to a person.</li>
         <li>Questions about another named student get the privacy answer and no data.</li></ol>
         <p class="muted" style="margin-top:10px">${esc(AI_META.assistantVersion)}. Knowledge base approved by ${esc(AI_META.kbApprovedBy)}, ${d(AI_META.kbApprovedOn)}. Source: ${esc(AI_META.kbSource)}.</p>
         <details style="margin-top:8px"><summary>See all ${FAQ.length} approved entries</summary><ul class="kb">${FAQ.map((f) => `<li><span class="id">${f.id}</span> ${esc(f.q)}</li>`).join("")}</ul></details>
-      </div></section>
-      <section class="panel" style="margin-top:16px"><div class="panel-head"><h2 style="font-size:16px">Embedding plan</h2></div><div class="panel-body small">
+      </div></section></details>
+      <details class="more" data-key="as-embed" ${ui.open["as-embed"] ? "open" : ""}><summary>Embed on another team’s site</summary><section class="panel"><div class="panel-body small" style="padding-top:20px">
         <p>Other IPP teams can place the same assistant in their pages with one iframe. It shares the approved knowledge base and the coordinator queue.</p>
         <pre class="payload">${embed}</pre><p style="margin-top:8px"><a href="#/embed">Preview the embedded view</a></p>
-        <p class="muted">Sprint 3 option: move the approved entries into Botpress (knowledge base + human handoff) behind the same iframe.</p></div></section></aside></div>`;
+        <p class="muted">Sprint 3 option: move the approved entries into Botpress (knowledge base + human handoff) behind the same iframe.</p></div></section></details></div>`;
   }
 
   function pageEmbed() {
-    return `<div class="embed-wrap"><header class="embed-head"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#123B73"/><path d="M16 7.5 24.5 16 16 24.5 7.5 16z" fill="#8EC5FF"/></svg><div><strong>IPP co-op assistant</strong><div class="small muted">Team P6/P7 · approved answers only</div></div></header>
+    return `<div class="embed-wrap"><header class="embed-head"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#154677"/><path d="M16 8 24 16 16 24 8 16z" fill="#E5C687"/></svg><div><strong>IPP co-op assistant</strong><div class="small muted">Team P6/P7 · approved answers only</div></div></header>
       ${askHTML(true)}<p class="small muted" style="margin-top:10px">Synthetic classroom demo. Decision support only; placements are approved by the university.</p></div>`;
   }
 
@@ -681,8 +695,7 @@
   function scoreBar(r) {
     const W = MATCH_WEIGHTS, p = r.parts;
     const seg = (k, cls) => `<span class="seg ${cls}" style="width:${p[k]}%" title="${k}: ${p[k]} of ${W[k]}"></span>`;
-    return `<div class="scoreline"><div class="scorebar" role="img" aria-label="Score ${r.total} of 100: required skills ${p.required} of ${W.required}, desirable ${p.desirable} of ${W.desirable}, interests ${p.interests} of ${W.interests}, location ${p.location} of ${W.location}">${seg("required", "s1")}${seg("desirable", "s2")}${seg("interests", "s3")}${seg("location", "s4")}</div><span class="score">${r.total}<span class="muted small"> / 100</span></span></div>
-      <div class="legend small muted"><span><i class="s1"></i>Required ${p.required}/${W.required}</span><span><i class="s2"></i>Desirable ${p.desirable}/${W.desirable}</span><span><i class="s3"></i>Interests ${p.interests}/${W.interests}</span><span><i class="s4"></i>Location ${p.location}/${W.location}</span></div>`;
+    return `<div class="scorebar" role="img" aria-label="Score ${r.total} of 100: required skills ${p.required} of ${W.required}, desirable ${p.desirable} of ${W.desirable}, interests ${p.interests} of ${W.interests}, location ${p.location} of ${W.location}">${seg("required", "s1")}${seg("desirable", "s2")}${seg("interests", "s3")}${seg("location", "s4")}</div>`;
   }
 
   function pageMatches() {
@@ -703,14 +716,14 @@
       const reqForm = ui.open["mr-" + op.id] ? `<form data-form="match-review" data-op="${op.id}" style="margin-top:10px"><label class="label small" for="mr-${op.id}">What should the coordinator look at?</label><textarea class="input" id="mr-${op.id}" name="text" style="min-height:60px"></textarea>${ui.errors["mr-" + op.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["mr-" + op.id])}</div>` : ""}<div class="btn-row" style="margin-top:6px"><button class="btn sm" type="submit">Send to coordinator</button><button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Cancel</button></div></form>` : "";
       return `<article class="match ${r.weak ? "weak" : ""}" aria-label="Rank ${r.rank}: ${esc(op.title)}">
         <div class="match-top"><div class="rank" aria-hidden="true">${r.rank}</div>
-          <div style="flex:1;min-width:0"><h3>${esc(op.title)}</h3><div class="skill-meta">${esc(op.employer)} · ${esc(op.location)} · ${d(op.start)} to ${d(op.end)} · <span class="id">${op.id}</span></div></div>
-          <div class="btn-row" style="justify-content:flex-end">${r.weak ? chip("none", "Weak match") : ""}${chip(el[0], el[1])}</div></div>
+          <div style="flex:1;min-width:0"><h3>${esc(op.title)}</h3><div class="skill-meta">${esc(op.employer)} · ${esc(op.location)} · ${d(op.start)} to ${d(op.end)} · <span class="id">${op.id}</span></div>
+            <div class="btn-row" style="gap:6px;margin-top:10px">${chip(el[0], el[1])}${r.weak ? chip("none", "Weak match") : ""}</div></div>
+          <div class="score" title="Score out of 100">${r.total}<span class="muted"> / 100</span></div></div>
         ${scoreBar(r)}
-        <div class="two-col" style="margin-top:12px;gap:16px"><div><h4 class="mini">Why it is suggested</h4><ul class="reasons">${r.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-          <div><h4 class="mini">Eligibility, checked separately</h4><ul class="checks">${r.eligibility.checks.map((c) => `<li class="${c.state}"><span class="st">${c.state === "pass" ? "Met" : c.state === "fail" ? "Not met" : "Unknown"}</span> ${esc(c.label)}: <span class="muted">${esc(isoNice(c.note))}</span></li>`).join("")}</ul>
-          ${r.gaps.length ? `<h4 class="mini" style="margin-top:10px">Skill gaps</h4><ul class="gaps">${gapBtns}</ul>` : `<p class="small muted" style="margin-top:8px">No skill gaps for this role.</p>`}</div></div>
-        <div class="match-foot"><span class="small muted">Inputs: ${esc(r.inputs)}</span>
-          ${req ? `<span class="small">${req.status === "open" ? chip("wait", `Review requested ${d(req.at)}`) : chip(req.decision === "ok" ? "ok" : "warn", req.decision === "ok" ? "Coordinator: fine to apply" : "Coordinator: not suitable")}</span>` : can("student") ? `<button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Ask coordinator to review</button>` : ""}</div>
+        <div class="two-col" style="gap:28px"><div><h4 class="mini">Why it is suggested</h4><ul class="reasons">${r.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div><h4 class="mini">Eligibility, checked separately</h4><ul class="checks">${r.eligibility.checks.map((c) => `<li class="${c.state}"><span class="st" title="${c.state === "pass" ? "Met" : c.state === "fail" ? "Not met" : "Unknown"}">${c.state === "pass" ? "✓" : c.state === "fail" ? "✕" : "?"}</span>${esc(c.label)} <span class="muted small">· ${esc(isoNice(c.note))}</span></li>`).join("")}</ul>
+          ${r.gaps.length ? `<h4 class="mini" style="margin-top:16px">Skill gaps</h4><ul class="gaps">${gapBtns}</ul>` : `<p class="small muted" style="margin-top:8px">No skill gaps for this role.</p>`}</div></div>
+        <div class="match-foot">${req ? `<span class="small">${req.status === "open" ? chip("wait", `Review requested ${d(req.at)}`) : chip(req.decision === "ok" ? "ok" : "warn", req.decision === "ok" ? "Coordinator: fine to apply" : "Coordinator: not suitable")}</span>` : can("student") ? `<button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Ask coordinator to review</button>` : ""}</div>
         ${reqForm}</article>`;
     };
     const reviews = S.matchReviews.slice().reverse();
@@ -719,29 +732,29 @@
     const picker = !can("student") ? `<form class="btn-row" style="margin-bottom:16px"><label for="mstudent" class="small" style="font-weight:500">Synthetic student</label><select class="input" id="mstudent" data-change="match-student" style="max-width:320px">${AI_STUDENTS.map((x) => `<option value="${x.id}" ${x.id === sid ? "selected" : ""}>${esc(x.name)} (${x.id})</option>`).join("")}</select></form>` : "";
     const skillChips = res.skills.map((k) => `<span class="chip ${k.status === "reviewed" ? "ok" : "none"}">${esc(k.name)} · ${k.status === "reviewed" ? `reviewed${k.evidence ? " " + k.evidence : ""}` : "self-declared"}</span>`).join(" ");
     return head(can("student") ? "Your internship matches" : "Internship matches",
-      "Up to three open opportunities, ranked by transparent rules. Eligibility is checked separately, and every suggestion shows its reasons and skill gaps.") +
-      notice("rule", "<strong>Ranking is not placement.</strong> A match is decision support. The coordinator checks eligibility, and a placement is official only after the university confirms it (P04).") +
-      `<div class="layout" style="margin-top:20px"><div class="stack">${picker ? `<div>${picker}</div>` : ""}
-        <section class="panel"><div class="panel-head"><h2>Profile used for matching</h2><span class="small muted">${esc(st.id)} · profile v${st.profileVersion}</span></div><div class="panel-body">
-          <dl class="kv"><dt>Student</dt><dd>${esc(st.name)} <span class="tag sim">synthetic</span></dd><dt>Programme</dt><dd>${esc(st.programme)}</dd>
+      "Up to three open roles, ranked by rules you can see.") +
+      `<p class="next" style="margin-top:-16px"><span class="next-dot" style="background:var(--navy)"></span><span class="next-text"><strong>Ranking is not placement.</strong> A placement is official only once the university confirms it.</span></p>` +
+      `<div class="layout"><div class="stack">${picker ? `<div>${picker}</div>` : ""}
+        <section class="panel"><div class="panel-head"><h2>${esc(st.name)}</h2><span class="small muted">${esc(st.programme)} · profile v${st.profileVersion}</span></div><div class="panel-body">
+          <dl class="kv">
           <dt>Availability</dt><dd>${st.availability ? `${d(st.availability.from)} to ${d(st.availability.to)}` : `<span class="ev missing">Not provided</span>`}</dd>
           <dt>Interests</dt><dd>${esc(st.interests.join(", "))}</dd><dt>Locations</dt><dd>${esc(st.locations.join(", "))}</dd>
           <dt>Skills</dt><dd><div class="btn-row" style="gap:6px">${skillChips}</div>${res.unknownSkills.length ? `<div class="small" style="margin-top:6px;color:var(--amber)">Not in the shared skill vocabulary, so not used: ${esc(res.unknownSkills.join(", "))}</div>` : ""}</dd></dl>
-          ${isLayla && st.reviewedFrom ? notice("ok", `Includes reviewed evidence from P06 (${esc(st.reviewedFrom.join(", "))}). Reviewed skills count in full; self-declared skills count at ${EVIDENCE_FACTOR.self * 100}%.`) : ""}
+          ${isLayla && st.reviewedFrom ? `<p class="foot" style="margin-top:14px">Reviewed skills count in full; self-declared skills count at ${EVIDENCE_FACTOR.self * 100}%.</p>` : ""}
         </div></section>
-        <h2 style="margin-top:6px">Top ${res.ranked.length} of ${res.ranked.length + res.others.length} eligible</h2>
+        <h2 style="margin-top:16px">Top ${res.ranked.length} of ${res.ranked.length + res.others.length} eligible</h2>
         ${res.ranked.length < 3 ? notice("wait", `Only ${res.ranked.length} open ${res.ranked.length === 1 ? "opportunity passes" : "opportunities pass"} the mandatory conditions. We do not fill the list with roles the student cannot take.`) : ""}
         ${res.ranked.map(card).join("")}
-        ${res.others.length ? `<details class="panel" style="padding:12px 20px"><summary>${res.others.length} more eligible ${res.others.length === 1 ? "opportunity" : "opportunities"} ranked lower</summary><table class="table" style="margin-top:8px"><tbody>${res.others.map((r) => `<tr><td class="id">${r.op.id}</td><td>${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)}</div></td><td>${r.total}</td></tr>`).join("")}</tbody></table></details>` : ""}
-        <section class="panel"><div class="panel-head"><h2>Not recommended: a mandatory condition fails</h2><span class="small muted">${res.excluded.length}</span></div><div class="panel-body">
-          <table class="table"><thead><tr><th>Opportunity</th><th>Condition not met</th></tr></thead><tbody>${res.excluded.map((r) => `<tr><td><span class="id">${r.op.id}</span> ${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)}</div></td><td class="small">${r.eligibility.checks.filter((c) => c.state === "fail").map((c) => `${esc(c.label)}: ${esc(isoNice(c.note))}`).join("<br>")}</td></tr>`).join("")}</tbody></table></div></section>
+        ${res.others.length ? `<details class="more" data-key="m-others" ${ui.open["m-others"] ? "open" : ""}><summary>${res.others.length} more ranked lower</summary><section class="panel"><div class="panel-body" style="padding-top:16px"><table class="table"><tbody>${res.others.map((r) => `<tr><td class="id">${r.op.id}</td><td>${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)}</div></td><td style="text-align:right">${r.total}</td></tr>`).join("")}</tbody></table></div></section></details>` : ""}
+        <section class="panel"><div class="panel-head"><h2>Not recommended</h2><span class="small muted">A required condition fails</span></div><div class="panel-body" style="padding-top:18px">
+          <table class="table fixed"><colgroup><col style="width:50%"><col></colgroup><tbody>${res.excluded.map((r) => `<tr><td>${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)} · ${r.op.id}</div></td><td class="small" style="color:var(--ink-2)">${r.eligibility.checks.filter((c) => c.state === "fail").map((c) => `${esc(c.label)}: ${esc(isoNice(c.note))}`).join("<br>")}</td></tr>`).join("")}</tbody></table></div></section>
         ${reviewsHTML}
       </div>
-      <aside class="rail"><section class="panel"><div class="panel-head"><h2 style="font-size:16px">Method</h2></div><div class="panel-body small">
+      <details class="more" data-key="m-method" ${ui.open["m-method"] ? "open" : ""}><summary>How matching works</summary><section class="panel"><div class="panel-body small" style="padding-top:20px">
         <p><strong>${esc(AI_META.matcherVersion)}.</strong> No machine-learning model: skill names are normalised to the shared vocabulary, then scored with fixed, visible weights.</p>
         <table class="table" style="font-size:13px"><tbody>${Object.entries(MATCH_WEIGHTS).map(([k, v]) => `<tr><td style="text-transform:capitalize">${k}</td><td>${v} pts</td></tr>`).join("")}<tr><td>Self-declared skill</td><td>${EVIDENCE_FACTOR.self * 100}% credit</td></tr><tr><td>Weak match</td><td>below ${WEAK_MATCH}</td></tr></tbody></table>
         <p style="margin-top:10px">Not used: name, gender, age, nationality or any other personal attribute. <a href="#/ai-checks">See the fairness test</a>.</p>
-        <p class="muted">Sample data: ${AI_STUDENTS.length} synthetic students, ${AI_OPPORTUNITIES.length} synthetic opportunities. Demo date ${d(S.today)}.</p></div></section></aside></div>`;
+        <p class="muted">Sample data: ${AI_STUDENTS.length} synthetic students, ${AI_OPPORTUNITIES.length} synthetic opportunities. Demo date ${d(S.today)}.</p></div></section></details></div>`;
   }
 
   /* Live test run: the same engine, base synthetic data, expected results fixed in ai_data.js */
@@ -771,18 +784,20 @@
   function pageAIChecks() {
     const R = runAITests(), all = [...R.chatbot, ...R.matching, ...R.checks], pass = all.filter((x) => x.ok).length;
     const okc = (ok) => (ok ? chip("ok", "Pass") : chip("warn", "Fail"));
-    return head("AI checks", "Acceptance tests for the assistant and the matching engine. They run live in your browser on the base synthetic data every time this page opens.",
+    const fold = (key, title, count, body) => `<details class="more" data-key="${key}" ${ui.open[key] ? "open" : ""}><summary>${title}<span class="muted" style="font-weight:400">${count}</span></summary><section class="panel"><div class="panel-body" style="padding-top:18px">${body}</div></section></details>`;
+    const passOf = (xs) => ` · ${xs.filter((x) => x.ok).length} of ${xs.length} pass`;
+    return head("AI checks", "Tests for the assistant and matching, run live in your browser.",
       `<div class="bigstat"><span>${pass}</span> / ${all.length} passed</div>`) +
-      `<div class="layout single"><div class="stack">
-      <section class="panel"><div class="panel-head"><h2>Assistant: ${R.chatbot.length} questions</h2><span class="small muted">${R.chatbot.filter((x) => x.ok).length} pass</span></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Question</th><th>Expected</th><th>Result</th><th>Why</th><th></th></tr></thead><tbody>
-        ${R.chatbot.map((t) => `<tr><td class="id">${t.id}${t.regression ? `<div class="small muted">retest ${t.regression}</div>` : ""}</td><td>${esc(t.q)}</td><td class="id">${t.expect === "handoff" ? "Hand to person" : t.expect}</td><td class="id">${t.got === "handoff" ? "Handed to person" : t.got}</td><td class="small">${esc(t.reason)}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="panel"><div class="panel-head"><h2>Matching: ${R.matching.length} synthetic profiles</h2><span class="small muted">${R.matching.filter((x) => x.ok).length} pass</span></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Profile</th><th>Expected order</th><th>Result (score)</th><th></th></tr></thead><tbody>
-        ${R.matching.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(AI_STUDENTS.find((s) => s.id === t.student).name)}<div class="small muted">${esc(t.note)}</div></td><td class="id">${t.expectTop.join(" → ")}</td><td class="id">${t.got.map((g, i) => `${g} (${t.scores[i]})`).join(" → ")}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="panel"><div class="panel-head"><h2>Eligibility, fairness and sensitivity</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Check</th><th>Observed</th><th></th></tr></thead><tbody>
-        ${R.checks.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(t.desc)}</td><td class="small">${esc(t.detail)}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="panel"><div class="panel-head"><h2>Failures found and what we changed</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>What went wrong</th><th>Corrective action</th></tr></thead><tbody>
-        ${AI_FAILURE_LOG.map((f) => `<tr><td class="id">${f.id}<div class="small muted">${esc(f.version)}</div></td><td>${esc(f.what)}<div class="small muted" style="margin-top:4px">${esc(f.severity)}</div></td><td class="small">${esc(f.fix)}</td></tr>`).join("")}</tbody></table>
-        <p class="small muted" style="margin-top:10px">Limits: these tests use ${AI_TESTS.chatbot.length} questions and ${AI_STUDENTS.length} synthetic profiles. They show the rules behave as designed; they do not show hiring accuracy. Human review: the coordinator answers every handed-over question, reviews challenged matches, and confirms eligibility before any application.</p></div></section>
+      `<div class="layout single"><div class="stack" style="gap:14px">
+      ${fold("ai-cb", "Assistant", passOf(R.chatbot), `<table class="table fixed"><colgroup><col style="width:70px"><col><col style="width:150px"><col style="width:70px"></colgroup><thead><tr><th>ID</th><th>Question</th><th>Result</th><th></th></tr></thead><tbody>
+        ${R.chatbot.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(t.q)}<div class="small muted" style="margin-top:2px">${esc(t.reason)}${t.regression ? ` · retest ${t.regression}` : ""}</div></td><td class="small">${t.got === "handoff" ? "Handed to person" : t.got}${t.got !== t.expect ? `<div class="muted">expected ${t.expect}</div>` : ""}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("ai-mt", "Matching", passOf(R.matching), `<table class="table fixed"><colgroup><col style="width:70px"><col><col style="width:260px"><col style="width:70px"></colgroup><thead><tr><th>ID</th><th>Profile</th><th>Result (score)</th><th></th></tr></thead><tbody>
+        ${R.matching.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(AI_STUDENTS.find((s) => s.id === t.student).name)}<div class="small muted" style="margin-top:2px">${esc(t.note)}</div></td><td class="small">${t.got.map((g, i) => `${g} (${t.scores[i]})`).join(" → ")}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("ai-ck", "Eligibility, fairness and sensitivity", passOf(R.checks), `<table class="table fixed"><colgroup><col style="width:70px"><col><col style="width:70px"></colgroup><tbody>
+        ${R.checks.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(t.desc)}<div class="small muted" style="margin-top:2px">${esc(t.detail)}</div></td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("ai-fl", "Failures found and what we changed", ` · ${AI_FAILURE_LOG.length}`, `<table class="table fixed"><colgroup><col style="width:90px"><col><col></colgroup><tbody>
+        ${AI_FAILURE_LOG.map((f) => `<tr><td class="id">${f.id}<div>${esc(f.version)}</div></td><td>${esc(f.what)}<div class="small muted" style="margin-top:4px">${esc(f.severity)}</div></td><td class="small" style="color:var(--ink-2)">${esc(f.fix)}</td></tr>`).join("")}</tbody></table>`)}
+      <p class="foot" style="margin-top:14px">These tests use ${AI_TESTS.chatbot.length} questions and ${AI_STUDENTS.length} synthetic profiles. They show the rules behave as designed, not hiring accuracy. A coordinator answers every handed-over question and confirms eligibility before any application.</p>
       </div></div>`;
   }
 
@@ -793,12 +808,74 @@
       placement: pagePlacement, agreement: pageAgreement, logbook: pageLogbook, progress: pageProgress, final: pageFinal, records: pageRecords,
       assistant: pageAssistant, matches: pageMatches, "ai-checks": pageAIChecks };
     const y = window.scrollY;
-    if (r === "embed") { document.body.classList.add("embedded"); document.getElementById("root").innerHTML = pageEmbed() + `<div class="toast" role="status" aria-live="polite" id="toast"></div>`; document.title = "IPP co-op assistant · Team P6/P7"; const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight; return; }
+    if (r === "embed") { document.body.classList.add("embedded"); document.getElementById("root").innerHTML = pageEmbed() + `<div class="toast" role="status" aria-live="polite" id="toast"></div>`; document.title = "IPP co-op assistant · Team P6/P7"; const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight; if (ui.anim && !ui.anim.started) playAnswer(); return; }
     document.body.classList.remove("embedded");
     document.getElementById("root").innerHTML = shell((pages[r] || pageNotFound)());
     window.scrollTo(0, y);
     const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight;
     const titleEl = document.querySelector("h1"); document.title = (titleEl ? titleEl.textContent + " · " : "") + "Team P6/P7";
+    if (ui.anim && !ui.anim.started) playAnswer();
+  }
+
+  /* Demo animation: show the thinking steps one by one, then stream the answer word by word.
+     Skipped for automated tests (navigator.webdriver) and for people who ask for reduced motion. */
+  const ANIMATE = !(navigator.webdriver || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches));
+  function playAnswer() {
+    const a = ui.anim; a.started = true;
+    const m = S.chat.find((x) => x.id === a.id), steps = thoughtSteps(m), t0 = performance.now();
+    const box = $("#thinking"), list = box && box.querySelector(".think-steps"), target = $(".anim-target"), log = $("#chatlog");
+    const lockables = [...document.querySelectorAll("form[data-form=ask] input, form[data-form=ask] button, .pill")];
+    lockables.forEach((x) => (x.disabled = true));
+    const alive = () => box && box.isConnected;
+    const scroll = () => { if (log) log.scrollTop = log.scrollHeight; };
+    const finish = (ok) => {
+      if (ui.anim === a) ui.anim = null;
+      lockables.forEach((x) => (x.disabled = false));
+      document.querySelectorAll("[data-hold]").forEach((x) => { x.classList.remove("reveal-wait"); x.classList.add("reveal"); });
+      document.querySelectorAll("[data-open-count]").forEach((x) => (x.textContent = `${openHandoffs()} open`));
+      if (a.toast) toast(a.toast);
+      if (ok) { const inp = $("#askq"); if (inp) inp.focus(); }
+    };
+    if (!alive() || !target) return finish(false);
+    let i = 0;
+    const nextStep = () => {
+      if (!alive()) return finish(false);
+      if (list.lastElementChild) list.lastElementChild.classList.add("done");
+      if (i < steps.length) {
+        const li = document.createElement("li"); li.textContent = steps[i++]; list.appendChild(li); scroll();
+        return setTimeout(nextStep, i === 2 ? 900 : 620);
+      }
+      setTimeout(stream, 260);
+    };
+    const stream = () => {
+      if (!alive()) return finish(false);
+      m.thinkMs = Math.round(performance.now() - t0); save();
+      box.remove(); target.hidden = false;
+      const sum = target.querySelector(".thought summary"); if (sum) sum.textContent = `Thought for ${(m.thinkMs / 1000).toFixed(1)} s`;
+      const bubble = target.querySelector(".bubble"), para = bubble.querySelector("p");
+      const extras = [...bubble.children].filter((x) => x !== para);
+      extras.forEach((x) => x.classList.add("reveal-wait"));
+      const walker = document.createTreeWalker(para, NodeFilter.SHOW_TEXT), nodes = [];
+      while (walker.nextNode()) nodes.push({ n: walker.currentNode, parts: walker.currentNode.textContent.split(/(\s+)/) });
+      nodes.forEach((x) => (x.n.textContent = ""));
+      const caret = document.createElement("span"); caret.className = "caret"; para.appendChild(caret);
+      let k = 0, j = 0;
+      const tick = () => {
+        if (!target.isConnected) return finish(false);
+        for (let c = 0; c < 3 && k < nodes.length; c++) {
+          const x = nodes[k]; x.n.textContent += x.parts[j++] || "";
+          if (j >= x.parts.length) { k++; j = 0; }
+        }
+        scroll();
+        if (k < nodes.length) return setTimeout(tick, 32);
+        caret.remove();
+        extras.forEach((x, idx) => { x.classList.remove("reveal-wait"); x.classList.add("reveal"); x.style.animationDelay = idx * 90 + "ms"; });
+        target.querySelectorAll(".msg.human").forEach((x) => x.classList.add("reveal"));
+        scroll(); finish(true);
+      };
+      tick();
+    };
+    setTimeout(nextStep, 180);
   }
   let toastTimer;
   function toast(msg) { const t = $("#toast"); if (!t) return; t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
@@ -808,7 +885,9 @@
     const res = IPP_AI.answer(q, { selfId: "COOP-B001" });
     const m = { id: nextId("M-", S.chat), q, by: me().name, at: S.today, res: { kind: res.kind, faqId: res.faq ? res.faq.id : null, score: res.score, reason: res.reason, guard: res.guard || null, ranked: res.ranked } };
     if (res.kind === "handoff") { const id = nextId("Q-", S.handoffQ); S.handoffQ.push({ id, q, from: me().name, at: S.today, status: "open", reason: res.reason }); m.handoffId = id; event(`Assistant handed question ${id} to the coordinator`); }
-    S.chat.push(m); ui.draft.ask = ""; commit(res.kind === "handoff" ? `Sent to ${PEOPLE.coordinator.name}: no approved answer` : null);
+    S.chat.push(m); ui.draft.ask = "";
+    const note = res.kind === "handoff" ? `Sent to ${PEOPLE.coordinator.name}: no approved answer` : null;
+    if (ANIMATE) { ui.anim = { id: m.id, started: false, toast: note }; commit(null); } else commit(note);
     const inp = $("#askq"); if (inp) inp.focus();
   }
   let pendingMove = null;
@@ -821,6 +900,9 @@
   function readinessPayload() {
     return { studentId: "COOP-B001", demonstrated: S.submissions.filter((x) => x.status === "demonstrated").map((x) => ({ skillId: x.skillId, evidenceId: x.id, reviewDate: x.reviews.at(-1).at })), inProgress: S.gaps.filter((g) => g.status === "open").map((g) => g.skillId) };
   }
+
+  /* Folded sections stay open across re-renders. */
+  document.addEventListener("toggle", (e) => { const t = e.target; if (t.matches && t.matches("details[data-key]")) ui.open[t.dataset.key] = t.open; }, true);
 
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-action]"); if (!b) return;
@@ -922,6 +1004,7 @@
         const ev = []; if (fd.get("ev")) ev.push(fd.get("ev"));
         const nt = (fd.get("newev") || "").trim(); if (nt) { const id = "EV-" + String(Math.max(100, ...S.evidence.map((x) => +x.id.slice(3))) + 1).padStart(4, "0"); S.evidence.push({ id, title: nt, date: S.today, source: "Student" }); ev.push(id); }
         const id = "LOG-" + String(S.logs.length + 1).padStart(2, "0");
+        ui.open["log-new"] = false;
         S.logs.push({ id, week: weekOf(S.today), date: S.today, goal: fd.get("goal"), status: "submitted", versions: [{ v: 1, at: S.today, text, evidence: ev }], feedback: [] });
         ui.errors.log = null; event(`Submitted log entry ${id}`); commit(`${id} sent to ${PEOPLE.supervisor.name}`); },
       "log-revise": () => { const l = S.logs.find((x) => x.id === f.dataset.id), text = (fd.get("text") || "").trim();
