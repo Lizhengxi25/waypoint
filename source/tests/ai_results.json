@@ -1,0 +1,170 @@
+[
+ {
+  "ac": "UI",
+  "desc": "App is branded Team P6/P7 (no Waypoint)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "UI",
+  "desc": "Theme colour is blue",
+  "ok": true,
+  "detail": "rgb(18, 59, 115)"
+ },
+ {
+  "ac": "CB",
+  "desc": "Five approved questions answered from the right approved entries",
+  "ok": true,
+  "detail": "['FAQ-01', 'FAQ-02', 'FAQ-03', 'FAQ-04', 'FAQ-08']"
+ },
+ {
+  "ac": "CB",
+  "desc": "Each answer shows its approved source",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "CB",
+  "desc": "Unknown policy question is not answered; handed to coordinator",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "CB",
+  "desc": "Student is told the assistant won't guess",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "CB",
+  "desc": "Request for another student's data gets the privacy answer",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "CB",
+  "desc": "Suggested pay question also handed over",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "HR",
+  "desc": "Student can send a doubtful answer to a coordinator",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "HR",
+  "desc": "Coordinator sees open handed-over questions in the navigation",
+  "ok": true,
+  "detail": "Ask the assistant 3"
+ },
+ {
+  "ac": "HR",
+  "desc": "Too-short coordinator reply is rejected",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "HR",
+  "desc": "Coordinator's human answer appears in the student's conversation, labelled as human",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "MT",
+  "desc": "Layla sees three ranked opportunities",
+  "ok": true,
+  "detail": "['OP-031', 'OP-028', 'OP-033']"
+ },
+ {
+  "ac": "MT",
+  "desc": "Each match shows reasons, eligibility and inputs",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "MT",
+  "desc": "Human-control notice is shown",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "PRIV",
+  "desc": "Student cannot pick another student's profile",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "INT",
+  "desc": "Jira gap from matching goes onto the P06 preparation plan",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "INT",
+  "desc": "Plan shows the gap with its matching source",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "HR",
+  "desc": "Student asks the coordinator to review a match",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "HR",
+  "desc": "Coordinator records a decision with a comment",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "EL",
+  "desc": "Mei (no availability): two results, all needing a coordinator check, list not padded",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "EL",
+  "desc": "Closed listing OP-043 appears only under not recommended",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "DQ",
+  "desc": "Skills outside the shared vocabulary are flagged (Git, Trello)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "SE",
+  "desc": "After Jira is reviewed in P06, OP-028 becomes rank 1 for Layla",
+  "ok": true,
+  "detail": "['OP-028', 'OP-033', 'OP-031']"
+ },
+ {
+  "ac": "QA",
+  "desc": "AI checks page: every live test passes",
+  "ok": true,
+  "detail": "24 / 24 passed"
+ },
+ {
+  "ac": "EMB",
+  "desc": "Embed view shows only the assistant (no sidebar)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "UI",
+  "desc": "Matches page has no horizontal scroll at phone width",
+  "ok": true,
+  "detail": "390"
+ },
+ {
+  "ac": "X",
+  "desc": "No JavaScript errors during the run",
+  "ok": true,
+  "detail": ""
+ }
+]

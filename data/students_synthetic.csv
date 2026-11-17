@@ -1,0 +1,5 @@
+student_id,name,profile_version,programme,interests,preferred_locations,available_from,available_to,skills_raw,skill_evidence_status
+COOP-B001,Layla Hassan,3,Business Analytics,aviation; analytics; operations,Dubai; Abu Dhabi,2027-01-10,2027-06-20,SQL; Excel; Tableau; Python programming,self; self; self; self
+COOP-B002,Daniel Okafor,1,Computer Science,software; fintech; data engineering,Abu Dhabi,2027-01-10,2027-06-20,Python 3; PostgreSQL; Git; Trello,self; self; self; self
+COOP-B003,Mei Tanaka,2,Marketing,retail; customer experience; ux,Dubai,MISSING,MISSING,User research; Google Sheets; Presenting; Figma,self; self; self; self
+COOP-B004,Yusuf Demir,1,Finance,banking; fintech; finance,Abu Dhabi,2027-05-01,2027-08-31,Excel; Financial modeling; Power BI; SQL,self; self; self; reviewed

@@ -1,7 +1,8 @@
 import asyncio, json
 from playwright.async_api import async_playwright
 import pathlib, sys
-URL = (pathlib.Path(__file__).resolve().parent.parent / "dist" / "Waypoint.html").as_uri()
+OUT = pathlib.Path(__file__).resolve().parent / "screens"; OUT.mkdir(exist_ok=True)
+URL = (pathlib.Path(__file__).resolve().parent.parent / "dist" / "TeamP6P7.html").as_uri()
 R = []   # results
 def check(ac, desc, ok, detail=""):
     R.append({"ac": ac, "desc": desc, "ok": bool(ok), "detail": detail}); print(("PASS" if ok else "FAIL"), ac, desc, detail)
@@ -13,7 +14,7 @@ async def main():
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.evaluate("localStorage.clear()"); await pg.goto(URL)
         await pg.click("[data-action=open-settings]"); await pg.click("[data-preset=fresh]")
-        S = lambda: pg.evaluate("JSON.parse(localStorage.getItem('waypoint.records.v3'))")
+        S = lambda: pg.evaluate("JSON.parse(localStorage.getItem('teamp6p7.records.v4'))")
         async def role(r): await pg.select_option("#role", r); await pg.wait_for_timeout(80)
         async def go(h): await pg.evaluate(f"location.hash='#/{h}'"); await pg.wait_for_timeout(120)
         async def text(): return await pg.inner_text("#main")
@@ -52,7 +53,7 @@ async def main():
         await pg.fill("#expl", "I created OPS-104 and OPS-105 for work the team needs next and gave every item an owner. I moved OPS-101 from To do to In progress when cleaning started and to Done once the file was shared.")
         await pg.click("form[data-form=submit-evidence] button")
         s = await S(); check("P06-X", "Evidence EV-0001 v1 submitted and board locked", s["submissions"][0]["status"]=="submitted" and "locked" in (await text()))
-        await pg.screenshot(path="/tmp/flow_module_submitted.png")
+        await pg.screenshot(path=str(OUT / "flow_module_submitted.png"))
 
         await role("reviewer"); await go("submission/EV-0001")
         for i in range(3): await pg.check(f"input[name=c{i}]")
@@ -74,8 +75,8 @@ async def main():
         ok = h and set(h[0]["payload"]) >= {"skillId","evidenceId","outcome","reviewDate"}
         check("P06-AC4", "P01 receives skill, evidence ID, outcome and review date", ok, json.dumps(h[0]["payload"]) if h else "")
         check("P06-X", "Readiness summary sent to P07 (internal handoff)", any(x["to"]=="P07" for x in s["handoffs"]))
-        await pg.screenshot(path="/tmp/flow_review_done.png")
-        await role("student"); await go("plan"); await pg.wait_for_timeout(2900); await pg.screenshot(path="/tmp/flow_plan_done.png")
+        await pg.screenshot(path=str(OUT / "flow_review_done.png"))
+        await role("student"); await go("plan"); await pg.wait_for_timeout(2900); await pg.screenshot(path=str(OUT / "flow_plan_done.png"))
 
         # ---------- P07 ----------
         await pg.click("[data-action=open-settings]"); await pg.fill("#demo-date", "2027-02-15"); await pg.click("form[data-form=date] button")
@@ -112,7 +113,7 @@ async def main():
         if "Original entry" not in await text(): await pg.click("[data-action=toggle]")
         t = await text(); s = await S(); l = s["logs"][0]
         check("P07-AC1", "Log submitted, feedback requested, revised; original, feedback and revision all visible", len(l["versions"])==2 and "Original entry" in t and "Revision 1" in t and "feedback request" in t)
-        await pg.screenshot(path="/tmp/flow_logbook.png", full_page=False)
+        await pg.screenshot(path=str(OUT / "flow_logbook.png"), full_page=False)
 
         await role("advisor"); await go("progress")
         t = await text(); check("P07-AC2", "Outcomes with no linked evidence are marked missing", "Evidence missing" in t)

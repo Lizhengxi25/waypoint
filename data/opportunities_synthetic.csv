@@ -1,0 +1,11 @@
+opportunity_id,version,employer,title,location,start,end,listing_status,closes,eligible_programmes,interest_tags,required_skill_ids,desirable_skill_ids
+OP-028,2,Emirates Group,Aviation analytics intern,Dubai,2027-01-10,2027-06-20,published,2026-12-10,Business Analytics; Computer Science; Data Science,aviation; analytics; operations,SK-JIRA; SK-EXCEL,SK-SQL; SK-VIZ
+OP-031,1,Etihad Airways,Network planning intern,Abu Dhabi,2027-01-10,2027-06-20,published,2026-12-10,Business Analytics; Data Science; Engineering,aviation; planning; analytics,SK-SQL; SK-EXCEL,SK-PY
+OP-033,1,Marina Logistics (fictional),Supply-chain data intern,Dubai,2027-01-10,2027-06-20,published,2026-12-15,Business Analytics; Computer Science; Industrial Engineering,logistics; operations; analytics,SK-SQL; SK-PY,SK-VIZ; SK-JIRA
+OP-035,1,Dune Fintech (fictional),Junior data engineering intern,Abu Dhabi,2027-01-10,2027-06-20,published,2026-12-15,Computer Science; Data Science,fintech; software; data engineering,SK-PY; SK-SQL,SK-JIRA
+OP-037,1,Palm Retail Group (fictional),Customer insights intern,Dubai,2027-01-10,2027-06-20,published,2026-12-20,Marketing; Business Analytics,retail; customer experience; marketing,SK-UX; SK-EXCEL,SK-COMM; SK-VIZ
+OP-039,1,Oasis Health Data (fictional),Health analytics intern,Abu Dhabi,2027-01-10,2027-06-20,published,2026-12-20,Data Science; Business Analytics; Public Health,healthcare; analytics,SK-STATS; SK-SQL,SK-PY
+OP-041,1,Harbour Capital (fictional),Finance analyst summer intern,Abu Dhabi,2027-05-15,2027-08-15,published,2027-03-01,Finance; Business Analytics; Economics,banking; fintech; finance,SK-EXCEL; SK-FIN,SK-VIZ; SK-SQL
+OP-043,1,Skyline Media (fictional),Digital marketing intern,Dubai,2027-01-10,2027-06-20,closed,2026-11-01,Marketing,media; marketing; customer experience,SK-COMM,SK-VIZ
+OP-045,1,Lumen Travel (fictional),Digital experience intern,Dubai,2027-01-10,2027-06-20,published,2026-12-20,Marketing; Design; Business Analytics,customer experience; ux; travel,SK-UX,SK-COMM; SK-EXCEL
+OP-047,1,Crescent Bank (fictional),Risk analytics summer intern,Abu Dhabi,2027-06-01,2027-08-20,published,2027-03-15,Finance; Economics; Data Science,banking; risk; analytics,SK-SQL; SK-STATS,SK-EXCEL; SK-PY

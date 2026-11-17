@@ -1,8 +1,8 @@
-/* Waypoint — Co-op preparation (P06) and progress (P07). Vanilla JS, no build step required. */
+/* Team P6/P7 — Co-op preparation (P06), progress (P07) and Sprint 2 AI features. Vanilla JS, no build step required. */
 (function () {
   "use strict";
 
-  const STORE_KEY = "waypoint.records.v3";
+  const STORE_KEY = "teamp6p7.records.v4";
   let S = load();
   let ui = { open: {}, errors: {}, draft: {} };
 
@@ -10,9 +10,9 @@
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) { const s = JSON.parse(raw); if (s && s.version === 3) return s; }
+      if (raw) { const s = JSON.parse(raw); if (s && s.version === 3) return ensureAI(s); }
     } catch (e) { /* storage unavailable: fall back to memory */ }
-    return PRESETS.midpoint.make();
+    return ensureAI(PRESETS.midpoint.make());
   }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {} }
   function commit(msg) { save(); render(); if (msg) toast(msg); }
@@ -64,7 +64,7 @@
     const st = sub ? sub.status : "none";
     const lastReview = sub && sub.reviews.length ? sub.reviews[sub.reviews.length - 1] : null;
     const steps = [
-      { label: "Gap identified", sub: `${gap.source === "P05" ? "From P05" : "Entered by coordinator"}, ${d(gap.createdAt)}`, reached: true },
+      { label: "Gap identified", sub: `${gap.source === "P05" ? "From P05" : gap.source === "match" ? "From matching (Sprint 2)" : "Entered by coordinator"}, ${d(gap.createdAt)}`, reached: true },
       { label: "Learn", sub: learned ? `Resource complete, ${d(S.resources[mod.id])}` : mod.status === "full" ? "Short resource" : "Module in development", reached: learned },
       { label: "Practise and submit", sub: sub ? `${sub.id} v${sub.versions.length}, ${d(sub.versions[sub.versions.length - 1].at)}` : "Practical task", reached: !!sub && st !== "revision" && st !== "not_yet" },
       { label: "Reviewer decision", sub: st === "submitted" ? "With reviewer" : st === "revision" ? "Revision requested" : st === "not_yet" ? "Not yet demonstrated" : lastReview ? `${lastReview.by}, ${d(lastReview.at)}` : "Checklist review", reached: st === "demonstrated", gate: true },
@@ -111,6 +111,11 @@
 
   /* ================= Shell ================= */
   const NAV = [
+    { group: "AI features (Sprint 2)", items: [
+      { r: "assistant", label: "Ask the assistant", count: () => (S.role === "coordinator" ? openHandoffs() : 0) },
+      { r: "matches", label: "Internship matches", count: () => (S.role === "coordinator" ? S.matchReviews.filter((q) => q.status === "open").length : 0) },
+      { r: "ai-checks", label: "AI checks" }
+    ]},
     { group: "Preparation (P06)", items: [
       { r: "plan", label: "Preparation plan" },
       { r: "catalogue", label: "Modules" },
@@ -141,8 +146,8 @@
     <div class="app">
       <aside class="side" aria-label="Navigation">
         <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#fff" stroke-width="2"/><path d="M16 7.5 24.5 16 16 24.5 7.5 16z" fill="#F2C36B"/><circle cx="16" cy="16" r="2.6" fill="#134537"/></svg>
-          <div><div class="brand-name">Waypoint</div><div class="brand-sub">Co-op preparation and progress</div></div>
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#fff" stroke-width="2"/><path d="M16 7.5 24.5 16 16 24.5 7.5 16z" fill="#8EC5FF"/><circle cx="16" cy="16" r="2.6" fill="#123B73"/></svg>
+          <div><div class="brand-name">Team P6/P7</div><div class="brand-sub">Co-op preparation and progress</div></div>
         </div>
         <div class="whoami">
           <label for="role">Viewing as</label>
@@ -356,7 +361,7 @@
       can("coordinator") ? `<button class="btn" type="button" data-action="import-gaps">Import gaps from P05</button>` : "") +
       `<div class="layout"><div class="stack">
         <section class="panel">${S.gaps.length ? `<table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Opportunity</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
-          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div></td><td class="id">${esc(g.opportunityId || "—")}</td><td>${g.source === "P05" ? '<span class="tag sim">P05 fixture</span>' : '<span class="tag">Manual</span>'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
+          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div></td><td class="id">${esc(g.opportunityId || "—")}</td><td>${g.source === "P05" ? '<span class="tag sim">P05 fixture</span>' : g.source === "match" ? '<span class="tag">Matching</span>' : '<span class="tag">Manual</span>'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
           </tbody></table>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the synthetic P05 output or enter a gap by hand.</p></div>`}</section>
         <section class="panel"><div class="panel-head"><h2>Enter a gap manually</h2></div><div class="panel-body">
           ${can("coordinator") ? `<form data-form="manual-gap"><div class="grid-2">
@@ -589,20 +594,223 @@
       <div class="btn-row" style="justify-content:flex-end"><button class="btn ghost" type="button" data-action="close-reason">Cancel</button><button class="btn" type="submit">Move item</button></div></form></dialog>`;
   }
 
+  /* ================= Sprint 2: AI features ================= */
+  function ensureAI(s) {
+    s.chat = s.chat || []; s.handoffQ = s.handoffQ || []; s.matchReviews = s.matchReviews || [];
+    s.matchStudent = s.matchStudent || "COOP-B001";
+    return s;
+  }
+  const faqById = (id) => FAQ.find((f) => f.id === id);
+  const openHandoffs = () => S.handoffQ.filter((q) => q.status === "open").length;
+
+  /* Layla's live profile: reviewed skills from P06 feed straight into matching (P06 -> P01 -> matching). */
+  function studentForMatch(id) {
+    const base = JSON.parse(JSON.stringify(AI_STUDENTS.find((x) => x.id === id) || AI_STUDENTS[0]));
+    if (base.id === "COOP-B001") {
+      const rev = S.submissions.filter((x) => x.status === "demonstrated");
+      rev.forEach((x) => base.skills.push({ id: x.skillId, raw: skillOf(x.skillId).name, status: "reviewed", evidence: x.id }));
+      if (rev.length) { base.profileVersion += 1; base.reviewedFrom = rev.map((x) => x.id); }
+    }
+    return base;
+  }
+
+  function askHTML(embed) {
+    const msgs = S.chat.map((m) => {
+      const user = `<div class="msg user"><div class="bubble">${esc(m.q)}</div><div class="meta">${esc(m.by)} · ${d(m.at)}</div></div>`;
+      let bot;
+      if (m.res.kind === "answer") {
+        const f = faqById(m.res.faqId);
+        bot = `<div class="msg bot"><div class="bubble"><p>${esc(f.a)}</p>
+          <div class="src"><span class="tag">Approved source</span> <span class="id">${f.id}</span> · ${esc(f.source)} · match score ${m.res.score.toFixed(2)}${m.res.guard === "privacy" ? " · privacy rule" : ""}</div>
+          <div class="btn-row" style="margin-top:8px">${f.link && !embed ? `<a class="btn secondary sm" href="${f.link}">Open the related page</a>` : ""}
+          ${m.flagged ? `<span class="small muted">Sent to the coordinator as ${esc(m.flagged)}</span>` : `<button class="btn ghost sm" type="button" data-action="chat-flag" data-id="${m.id}">Not what I asked: send to a coordinator</button>`}</div></div></div>`;
+      } else {
+        const h = S.handoffQ.find((x) => x.id === m.handoffId);
+        bot = `<div class="msg bot handoff"><div class="bubble"><p><strong>I don’t have an approved answer for this, so I won’t guess.</strong> I have sent your question to ${esc(PEOPLE.coordinator.name)} (co-op coordinator) as <span class="id">${esc(m.handoffId)}</span>.</p>
+          <div class="src">Why: ${esc(m.res.reason)}</div></div></div>`;
+        if (h && h.status === "answered") bot += `<div class="msg bot human"><div class="bubble"><div class="fhead small muted">${esc(h.by)}, co-op coordinator · ${d(h.answeredAt)}</div><p>${esc(h.reply)}</p><div class="src"><span class="tag">Human answer</span> Not yet part of the approved FAQ.</div></div></div>`;
+      }
+      return user + bot;
+    }).join("");
+    const empty = `<div class="msg bot"><div class="bubble"><p>Hi ${esc(PEOPLE.student.short)}. I answer questions about internship matching, preparation and co-op progress, using only approved sources. I can’t make decisions or approve placements.</p></div></div>`;
+    return `<div class="chat" aria-live="polite" id="chatlog">${msgs || empty}</div>
+      <form class="chat-form" data-form="ask"><label class="sr-only" for="askq">Your question</label>
+        <input class="input" id="askq" name="q" autocomplete="off" placeholder="Ask about matching, preparation or your co-op" value="${esc(ui.draft.ask || "")}">
+        <button class="btn" type="submit">Ask</button></form>
+      ${ui.errors.ask ? `<p class="small" style="color:var(--red);margin:6px 0 0">${esc(ui.errors.ask)}</p>` : ""}
+      <div class="suggest" aria-label="Suggested questions">${AI_SUGGESTED.map((q) => `<button type="button" class="pill" data-action="ask" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>`;
+  }
+
+  function pageAssistant() {
+    const queue = S.handoffQ.slice().reverse();
+    const queueHTML = `<section class="panel"><div class="panel-head"><h2>Questions for a person</h2><span class="small muted">${openHandoffs()} open</span></div><div class="panel-body">
+      ${queue.length ? `<table class="table"><thead><tr><th>ID</th><th>Question</th><th>Why it came here</th><th>Status</th></tr></thead><tbody>${queue.map((h) => `<tr>
+        <td class="id">${h.id}<div class="small muted">${d(h.at)}</div></td><td>${esc(h.q)}<div class="small muted">from ${esc(h.from)}</div></td><td class="small">${esc(h.reason)}</td>
+        <td>${h.status === "answered" ? `${chip("ok", "Answered")}<div class="small" style="margin-top:6px">${esc(h.reply)}</div>` : can("coordinator") ? `<form data-form="handoff-reply" data-id="${h.id}"><label class="sr-only" for="hr-${h.id}">Reply</label><textarea class="input" id="hr-${h.id}" name="reply" style="min-height:60px" placeholder="Reply to the student"></textarea>${ui.errors["hr-" + h.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["hr-" + h.id])}</div>` : ""}<button class="btn sm" type="submit" style="margin-top:6px">Send reply</button></form>` : chip("wait", "With coordinator")}</td></tr>`).join("")}</tbody></table>`
+        : `<p class="muted small">No questions have been handed over yet.</p>`}
+      ${can("coordinator") ? "" : locked("coordinator", "answer handed-over questions")}</div></section>`;
+    const embed = `&lt;iframe src="https://lizhengxi25.github.io/waypoint/#/embed"\n  title="IPP co-op assistant" width="380" height="600"&gt;&lt;/iframe&gt;`;
+    return head("Ask the co-op assistant", `Answers come only from ${FAQ.length} approved entries, and each answer shows its source. If the assistant is not sure, or the question is about a policy it has no source for, it hands the question to the co-op coordinator instead of guessing.`,
+      `<button class="btn secondary sm" type="button" data-action="chat-clear">Clear conversation</button>`) +
+      `<div class="layout"><div class="stack">
+        ${can("coordinator") ? queueHTML : ""}
+        <section class="panel" aria-label="Conversation"><div class="panel-body">${notice("rule", "<strong>Decision support only.</strong> The assistant cannot approve placements, change records or answer questions about other students.")}<div style="margin-top:14px">${askHTML(false)}</div></div></section>
+        ${can("coordinator") ? "" : queueHTML}
+      </div>
+      <aside class="rail"><section class="panel"><div class="panel-head"><h2 style="font-size:16px">How it works</h2></div><div class="panel-body small">
+        <ol class="steps"><li>Your question is matched against the approved entries (synonyms included, e.g. “co-op” = “internship”).</li>
+        <li>If the best entry scores at least ${IPP_AI.THRESHOLD} and shares two key terms, its approved text is shown word for word.</li>
+        <li>Policy topics with no source (pay, GPA, visas, credits, remote work…) and low-confidence questions go to a person.</li>
+        <li>Questions about another named student get the privacy answer and no data.</li></ol>
+        <p class="muted" style="margin-top:10px">${esc(AI_META.assistantVersion)}. Knowledge base approved by ${esc(AI_META.kbApprovedBy)}, ${d(AI_META.kbApprovedOn)}. Source: ${esc(AI_META.kbSource)}.</p>
+        <details style="margin-top:8px"><summary>See all ${FAQ.length} approved entries</summary><ul class="kb">${FAQ.map((f) => `<li><span class="id">${f.id}</span> ${esc(f.q)}</li>`).join("")}</ul></details>
+      </div></section>
+      <section class="panel" style="margin-top:16px"><div class="panel-head"><h2 style="font-size:16px">Embedding plan</h2></div><div class="panel-body small">
+        <p>Other IPP teams can place the same assistant in their pages with one iframe. It shares the approved knowledge base and the coordinator queue.</p>
+        <pre class="payload">${embed}</pre><p style="margin-top:8px"><a href="#/embed">Preview the embedded view</a></p>
+        <p class="muted">Sprint 3 option: move the approved entries into Botpress (knowledge base + human handoff) behind the same iframe.</p></div></section></aside></div>`;
+  }
+
+  function pageEmbed() {
+    return `<div class="embed-wrap"><header class="embed-head"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#123B73"/><path d="M16 7.5 24.5 16 16 24.5 7.5 16z" fill="#8EC5FF"/></svg><div><strong>IPP co-op assistant</strong><div class="small muted">Team P6/P7 · approved answers only</div></div></header>
+      ${askHTML(true)}<p class="small muted" style="margin-top:10px">Synthetic classroom demo. Decision support only; placements are approved by the university.</p></div>`;
+  }
+
+  const isoNice = (t) => String(t).replace(/\d{4}-\d{2}-\d{2}/g, (m) => d(m));
+  const ELIG = { eligible: ["ok", "Eligible"], check: ["wait", "Eligibility needs a coordinator check"], no: ["warn", "Not eligible"] };
+  function scoreBar(r) {
+    const W = MATCH_WEIGHTS, p = r.parts;
+    const seg = (k, cls) => `<span class="seg ${cls}" style="width:${p[k]}%" title="${k}: ${p[k]} of ${W[k]}"></span>`;
+    return `<div class="scoreline"><div class="scorebar" role="img" aria-label="Score ${r.total} of 100: required skills ${p.required} of ${W.required}, desirable ${p.desirable} of ${W.desirable}, interests ${p.interests} of ${W.interests}, location ${p.location} of ${W.location}">${seg("required", "s1")}${seg("desirable", "s2")}${seg("interests", "s3")}${seg("location", "s4")}</div><span class="score">${r.total}<span class="muted small"> / 100</span></span></div>
+      <div class="legend small muted"><span><i class="s1"></i>Required ${p.required}/${W.required}</span><span><i class="s2"></i>Desirable ${p.desirable}/${W.desirable}</span><span><i class="s3"></i>Interests ${p.interests}/${W.interests}</span><span><i class="s4"></i>Location ${p.location}/${W.location}</span></div>`;
+  }
+
+  function pageMatches() {
+    const sid = can("student") ? "COOP-B001" : S.matchStudent;
+    const st = studentForMatch(sid);
+    const res = IPP_AI.match(st, AI_OPPORTUNITIES, { today: S.today });
+    const isLayla = st.id === "COOP-B001";
+    const card = (r) => {
+      const op = r.op, el = ELIG[r.eligibility.status];
+      const req = S.matchReviews.find((x) => x.studentId === st.id && x.opId === op.id);
+      const gapBtns = r.gaps.map((g) => {
+        const p06 = SKILLS.find((k) => k.id === g.id);
+        const open = S.gaps.find((x) => x.skillId === g.id && x.status === "open");
+        const done = S.submissions.find((x) => x.skillId === g.id && x.status === "demonstrated");
+        const act = !isLayla ? "" : done ? "" : open ? `<span class="small muted">On plan as ${esc(open.id)}</span>` : p06 && (can("student") || can("coordinator")) ? `<button class="btn secondary sm" type="button" data-action="match-gap" data-skill="${g.id}" data-op="${op.id}">Add to preparation plan</button>` : p06 ? "" : `<span class="small muted">No P06 module yet</span>`;
+        return `<li><span class="${g.kind === "required" ? "gap-req" : "gap-des"}">${esc(g.name)}</span> <span class="small muted">(${g.kind})</span> ${act}</li>`;
+      }).join("");
+      const reqForm = ui.open["mr-" + op.id] ? `<form data-form="match-review" data-op="${op.id}" style="margin-top:10px"><label class="label small" for="mr-${op.id}">What should the coordinator look at?</label><textarea class="input" id="mr-${op.id}" name="text" style="min-height:60px"></textarea>${ui.errors["mr-" + op.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["mr-" + op.id])}</div>` : ""}<div class="btn-row" style="margin-top:6px"><button class="btn sm" type="submit">Send to coordinator</button><button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Cancel</button></div></form>` : "";
+      return `<article class="match ${r.weak ? "weak" : ""}" aria-label="Rank ${r.rank}: ${esc(op.title)}">
+        <div class="match-top"><div class="rank" aria-hidden="true">${r.rank}</div>
+          <div style="flex:1;min-width:0"><h3>${esc(op.title)}</h3><div class="skill-meta">${esc(op.employer)} · ${esc(op.location)} · ${d(op.start)} to ${d(op.end)} · <span class="id">${op.id}</span></div></div>
+          <div class="btn-row" style="justify-content:flex-end">${r.weak ? chip("none", "Weak match") : ""}${chip(el[0], el[1])}</div></div>
+        ${scoreBar(r)}
+        <div class="two-col" style="margin-top:12px;gap:16px"><div><h4 class="mini">Why it is suggested</h4><ul class="reasons">${r.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div><h4 class="mini">Eligibility, checked separately</h4><ul class="checks">${r.eligibility.checks.map((c) => `<li class="${c.state}"><span class="st">${c.state === "pass" ? "Met" : c.state === "fail" ? "Not met" : "Unknown"}</span> ${esc(c.label)}: <span class="muted">${esc(isoNice(c.note))}</span></li>`).join("")}</ul>
+          ${r.gaps.length ? `<h4 class="mini" style="margin-top:10px">Skill gaps</h4><ul class="gaps">${gapBtns}</ul>` : `<p class="small muted" style="margin-top:8px">No skill gaps for this role.</p>`}</div></div>
+        <div class="match-foot"><span class="small muted">Inputs: ${esc(r.inputs)}</span>
+          ${req ? `<span class="small">${req.status === "open" ? chip("wait", `Review requested ${d(req.at)}`) : chip(req.decision === "ok" ? "ok" : "warn", req.decision === "ok" ? "Coordinator: fine to apply" : "Coordinator: not suitable")}</span>` : can("student") ? `<button class="btn ghost sm" type="button" data-action="toggle" data-id="mr-${op.id}">Ask coordinator to review</button>` : ""}</div>
+        ${reqForm}</article>`;
+    };
+    const reviews = S.matchReviews.slice().reverse();
+    const reviewsHTML = reviews.length ? `<section class="panel"><div class="panel-head"><h2>Review requests</h2><span class="small muted">Human review step</span></div><div class="panel-body"><table class="table"><thead><tr><th>Request</th><th>Student’s note</th><th>Coordinator decision</th></tr></thead><tbody>${reviews.map((q) => `<tr><td class="id">${q.id}<div class="small muted">${q.studentId} · ${q.opId} · ${d(q.at)}</div></td><td>${esc(q.text)}</td><td>${q.status === "closed" ? `${chip(q.decision === "ok" ? "ok" : "warn", q.decision === "ok" ? "Fine to apply" : "Not suitable")}<div class="small" style="margin-top:4px">${esc(q.reply)}</div><div class="small muted">${esc(q.by)}, ${d(q.closedAt)}</div>` : can("coordinator") ? `<form data-form="match-decide" data-id="${q.id}"><label class="sr-only" for="md-${q.id}">Comment</label><textarea class="input" id="md-${q.id}" name="reply" style="min-height:56px" placeholder="Comment for the student"></textarea>${ui.errors["md-" + q.id] ? `<div class="small" style="color:var(--red)">${esc(ui.errors["md-" + q.id])}</div>` : ""}<div class="btn-row" style="margin-top:6px"><button class="btn sm" type="submit" name="decision" value="ok">Fine to apply</button><button class="btn danger sm" type="submit" name="decision" value="no">Not suitable</button></div></form>` : chip("wait", "With coordinator")}</td></tr>`).join("")}</tbody></table>
+      <p class="small muted" style="margin-top:8px">“Fine to apply” is advice. A placement is official only when the university confirms it (P04).</p></div></section>` : "";
+    const picker = !can("student") ? `<form class="btn-row" style="margin-bottom:16px"><label for="mstudent" class="small" style="font-weight:500">Synthetic student</label><select class="input" id="mstudent" data-change="match-student" style="max-width:320px">${AI_STUDENTS.map((x) => `<option value="${x.id}" ${x.id === sid ? "selected" : ""}>${esc(x.name)} (${x.id})</option>`).join("")}</select></form>` : "";
+    const skillChips = res.skills.map((k) => `<span class="chip ${k.status === "reviewed" ? "ok" : "none"}">${esc(k.name)} · ${k.status === "reviewed" ? `reviewed${k.evidence ? " " + k.evidence : ""}` : "self-declared"}</span>`).join(" ");
+    return head(can("student") ? "Your internship matches" : "Internship matches",
+      "Up to three open opportunities, ranked by transparent rules. Eligibility is checked separately, and every suggestion shows its reasons and skill gaps.") +
+      notice("rule", "<strong>Ranking is not placement.</strong> A match is decision support. The coordinator checks eligibility, and a placement is official only after the university confirms it (P04).") +
+      `<div class="layout" style="margin-top:20px"><div class="stack">${picker ? `<div>${picker}</div>` : ""}
+        <section class="panel"><div class="panel-head"><h2>Profile used for matching</h2><span class="small muted">${esc(st.id)} · profile v${st.profileVersion}</span></div><div class="panel-body">
+          <dl class="kv"><dt>Student</dt><dd>${esc(st.name)} <span class="tag sim">synthetic</span></dd><dt>Programme</dt><dd>${esc(st.programme)}</dd>
+          <dt>Availability</dt><dd>${st.availability ? `${d(st.availability.from)} to ${d(st.availability.to)}` : `<span class="ev missing">Not provided</span>`}</dd>
+          <dt>Interests</dt><dd>${esc(st.interests.join(", "))}</dd><dt>Locations</dt><dd>${esc(st.locations.join(", "))}</dd>
+          <dt>Skills</dt><dd><div class="btn-row" style="gap:6px">${skillChips}</div>${res.unknownSkills.length ? `<div class="small" style="margin-top:6px;color:var(--amber)">Not in the shared skill vocabulary, so not used: ${esc(res.unknownSkills.join(", "))}</div>` : ""}</dd></dl>
+          ${isLayla && st.reviewedFrom ? notice("ok", `Includes reviewed evidence from P06 (${esc(st.reviewedFrom.join(", "))}). Reviewed skills count in full; self-declared skills count at ${EVIDENCE_FACTOR.self * 100}%.`) : ""}
+        </div></section>
+        <h2 style="margin-top:6px">Top ${res.ranked.length} of ${res.ranked.length + res.others.length} eligible</h2>
+        ${res.ranked.length < 3 ? notice("wait", `Only ${res.ranked.length} open ${res.ranked.length === 1 ? "opportunity passes" : "opportunities pass"} the mandatory conditions. We do not fill the list with roles the student cannot take.`) : ""}
+        ${res.ranked.map(card).join("")}
+        ${res.others.length ? `<details class="panel" style="padding:12px 20px"><summary>${res.others.length} more eligible ${res.others.length === 1 ? "opportunity" : "opportunities"} ranked lower</summary><table class="table" style="margin-top:8px"><tbody>${res.others.map((r) => `<tr><td class="id">${r.op.id}</td><td>${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)}</div></td><td>${r.total}</td></tr>`).join("")}</tbody></table></details>` : ""}
+        <section class="panel"><div class="panel-head"><h2>Not recommended: a mandatory condition fails</h2><span class="small muted">${res.excluded.length}</span></div><div class="panel-body">
+          <table class="table"><thead><tr><th>Opportunity</th><th>Condition not met</th></tr></thead><tbody>${res.excluded.map((r) => `<tr><td><span class="id">${r.op.id}</span> ${esc(r.op.title)}<div class="small muted">${esc(r.op.employer)}</div></td><td class="small">${r.eligibility.checks.filter((c) => c.state === "fail").map((c) => `${esc(c.label)}: ${esc(isoNice(c.note))}`).join("<br>")}</td></tr>`).join("")}</tbody></table></div></section>
+        ${reviewsHTML}
+      </div>
+      <aside class="rail"><section class="panel"><div class="panel-head"><h2 style="font-size:16px">Method</h2></div><div class="panel-body small">
+        <p><strong>${esc(AI_META.matcherVersion)}.</strong> No machine-learning model: skill names are normalised to the shared vocabulary, then scored with fixed, visible weights.</p>
+        <table class="table" style="font-size:13px"><tbody>${Object.entries(MATCH_WEIGHTS).map(([k, v]) => `<tr><td style="text-transform:capitalize">${k}</td><td>${v} pts</td></tr>`).join("")}<tr><td>Self-declared skill</td><td>${EVIDENCE_FACTOR.self * 100}% credit</td></tr><tr><td>Weak match</td><td>below ${WEAK_MATCH}</td></tr></tbody></table>
+        <p style="margin-top:10px">Not used: name, gender, age, nationality or any other personal attribute. <a href="#/ai-checks">See the fairness test</a>.</p>
+        <p class="muted">Sample data: ${AI_STUDENTS.length} synthetic students, ${AI_OPPORTUNITIES.length} synthetic opportunities. Demo date ${d(S.today)}.</p></div></section></aside></div>`;
+  }
+
+  /* Live test run: the same engine, base synthetic data, expected results fixed in ai_data.js */
+  function runAITests() {
+    const out = { chatbot: [], matching: [], checks: [] };
+    AI_TESTS.chatbot.forEach((t) => { const r = IPP_AI.answer(t.q); const got = r.kind === "answer" ? r.faq.id : "handoff"; out.chatbot.push(Object.assign({}, t, { got, score: r.score, reason: r.reason, ok: got === t.expect })); });
+    const base = (id) => JSON.parse(JSON.stringify(AI_STUDENTS.find((x) => x.id === id)));
+    const run = (st) => IPP_AI.match(st, AI_OPPORTUNITIES, { today: "2026-11-23" });
+    AI_TESTS.matching.forEach((t) => { const m = run(base(t.student)); const got = m.ranked.map((r) => r.op.id); out.matching.push(Object.assign({}, t, { got, scores: m.ranked.map((r) => r.total), ok: JSON.stringify(got) === JSON.stringify(t.expectTop) })); });
+    const C = {};
+    const mei = run(base("COOP-B003")), yus = run(base("COOP-B004")), lay = run(base("COOP-B001"));
+    C["EL-01"] = [!mei.ranked.some((r) => r.op.id === "OP-043") && mei.excluded.some((r) => r.op.id === "OP-043" && r.eligibility.checks[0].state === "fail"), "OP-043 excluded: listing closed"];
+    C["EL-02"] = [mei.ranked.length > 0 && mei.ranked.every((r) => r.eligibility.status === "check" && r.eligibility.checks.find((c) => c.label === "Availability").state === "unknown"), `${mei.ranked.length} results, all marked needs-check`];
+    const y35 = yus.excluded.find((r) => r.op.id === "OP-035");
+    C["EL-03"] = [!!y35 && y35.eligibility.checks.find((c) => c.label === "Availability").state === "fail", y35 ? y35.eligibility.checks.filter((c) => c.state === "fail").map((c) => c.label).join(" + ") + " not met" : "not excluded"];
+    const twin = base("COOP-B001"); twin.name = "Test Student"; twin.id = "COOP-T999";
+    const tw = run(twin); const sig = (m) => m.ranked.map((r) => r.op.id + ":" + r.total).join("|");
+    C["FR-01"] = [sig(tw) === sig(lay), sig(tw)];
+    const jira = base("COOP-B001"); jira.skills.push({ id: "SK-JIRA", raw: "Jira", status: "reviewed" });
+    const jm = run(jira); C["SE-01"] = [jm.ranked[0].op.id === "OP-028" && lay.ranked[0].op.id !== "OP-028", `before: ${lay.ranked[0].op.id} first; after: ${jm.ranked.map((r) => r.op.id + " " + r.total).join(", ")}`];
+    const noav = base("COOP-B001"); noav.availability = null; const nm = run(noav);
+    C["SE-02"] = [nm.ranked.every((r) => r.eligibility.status === "check"), nm.ranked.map((r) => r.op.id + " " + r.eligibility.status).join(", ")];
+    AI_TESTS.checks.forEach((c) => out.checks.push(Object.assign({}, c, { ok: C[c.id][0], detail: C[c.id][1] })));
+    return out;
+  }
+
+  function pageAIChecks() {
+    const R = runAITests(), all = [...R.chatbot, ...R.matching, ...R.checks], pass = all.filter((x) => x.ok).length;
+    const okc = (ok) => (ok ? chip("ok", "Pass") : chip("warn", "Fail"));
+    return head("AI checks", "Acceptance tests for the assistant and the matching engine. They run live in your browser on the base synthetic data every time this page opens.",
+      `<div class="bigstat"><span>${pass}</span> / ${all.length} passed</div>`) +
+      `<div class="layout single"><div class="stack">
+      <section class="panel"><div class="panel-head"><h2>Assistant: ${R.chatbot.length} questions</h2><span class="small muted">${R.chatbot.filter((x) => x.ok).length} pass</span></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Question</th><th>Expected</th><th>Result</th><th>Why</th><th></th></tr></thead><tbody>
+        ${R.chatbot.map((t) => `<tr><td class="id">${t.id}${t.regression ? `<div class="small muted">retest ${t.regression}</div>` : ""}</td><td>${esc(t.q)}</td><td class="id">${t.expect === "handoff" ? "Hand to person" : t.expect}</td><td class="id">${t.got === "handoff" ? "Handed to person" : t.got}</td><td class="small">${esc(t.reason)}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
+      <section class="panel"><div class="panel-head"><h2>Matching: ${R.matching.length} synthetic profiles</h2><span class="small muted">${R.matching.filter((x) => x.ok).length} pass</span></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Profile</th><th>Expected order</th><th>Result (score)</th><th></th></tr></thead><tbody>
+        ${R.matching.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(AI_STUDENTS.find((s) => s.id === t.student).name)}<div class="small muted">${esc(t.note)}</div></td><td class="id">${t.expectTop.join(" → ")}</td><td class="id">${t.got.map((g, i) => `${g} (${t.scores[i]})`).join(" → ")}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
+      <section class="panel"><div class="panel-head"><h2>Eligibility, fairness and sensitivity</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>Check</th><th>Observed</th><th></th></tr></thead><tbody>
+        ${R.checks.map((t) => `<tr><td class="id">${t.id}</td><td>${esc(t.desc)}</td><td class="small">${esc(t.detail)}</td><td>${okc(t.ok)}</td></tr>`).join("")}</tbody></table></div></section>
+      <section class="panel"><div class="panel-head"><h2>Failures found and what we changed</h2></div><div class="panel-body" style="padding-left:10px;padding-right:10px"><table class="table"><thead><tr><th>ID</th><th>What went wrong</th><th>Corrective action</th></tr></thead><tbody>
+        ${AI_FAILURE_LOG.map((f) => `<tr><td class="id">${f.id}<div class="small muted">${esc(f.version)}</div></td><td>${esc(f.what)}<div class="small muted" style="margin-top:4px">${esc(f.severity)}</div></td><td class="small">${esc(f.fix)}</td></tr>`).join("")}</tbody></table>
+        <p class="small muted" style="margin-top:10px">Limits: these tests use ${AI_TESTS.chatbot.length} questions and ${AI_STUDENTS.length} synthetic profiles. They show the rules behave as designed; they do not show hiring accuracy. Human review: the coordinator answers every handed-over question, reviews challenged matches, and confirms eligibility before any application.</p></div></section>
+      </div></div>`;
+  }
+
   /* ================= Render ================= */
   function render() {
     const { r, arg } = route();
     const pages = { plan: pagePlan, catalogue: pageCatalogue, module: () => pageModule(arg), review: pageReviewQueue, submission: () => pageSubmission(arg), gaps: pageGaps,
-      placement: pagePlacement, agreement: pageAgreement, logbook: pageLogbook, progress: pageProgress, final: pageFinal, records: pageRecords };
+      placement: pagePlacement, agreement: pageAgreement, logbook: pageLogbook, progress: pageProgress, final: pageFinal, records: pageRecords,
+      assistant: pageAssistant, matches: pageMatches, "ai-checks": pageAIChecks };
     const y = window.scrollY;
+    if (r === "embed") { document.body.classList.add("embedded"); document.getElementById("root").innerHTML = pageEmbed() + `<div class="toast" role="status" aria-live="polite" id="toast"></div>`; document.title = "IPP co-op assistant · Team P6/P7"; const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight; return; }
+    document.body.classList.remove("embedded");
     document.getElementById("root").innerHTML = shell((pages[r] || pageNotFound)());
     window.scrollTo(0, y);
-    const titleEl = document.querySelector("h1"); document.title = (titleEl ? titleEl.textContent + " · " : "") + "Waypoint";
+    const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight;
+    const titleEl = document.querySelector("h1"); document.title = (titleEl ? titleEl.textContent + " · " : "") + "Team P6/P7";
   }
   let toastTimer;
   function toast(msg) { const t = $("#toast"); if (!t) return; t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
 
   /* ================= Actions ================= */
+  function askQuestion(q) {
+    const res = IPP_AI.answer(q, { selfId: "COOP-B001" });
+    const m = { id: nextId("M-", S.chat), q, by: me().name, at: S.today, res: { kind: res.kind, faqId: res.faq ? res.faq.id : null, score: res.score, reason: res.reason, guard: res.guard || null, ranked: res.ranked } };
+    if (res.kind === "handoff") { const id = nextId("Q-", S.handoffQ); S.handoffQ.push({ id, q, from: me().name, at: S.today, status: "open", reason: res.reason }); m.handoffId = id; event(`Assistant handed question ${id} to the coordinator`); }
+    S.chat.push(m); ui.draft.ask = ""; commit(res.kind === "handoff" ? `Sent to ${PEOPLE.coordinator.name}: no approved answer` : null);
+    const inp = $("#askq"); if (inp) inp.focus();
+  }
   let pendingMove = null;
   function sendP01(sub, review) {
     const payload = { studentId: "COOP-B001", skillId: sub.skillId, evidenceId: sub.id, outcome: "demonstrated", reviewer: review.by, reviewDate: review.at };
@@ -619,7 +827,7 @@
       "as": () => { S.role = b.dataset.role; commit(`Now viewing as ${me().name}`); },
       "open-settings": () => $("#settings").showModal(),
       "close-settings": () => $("#settings").close(),
-      "preset": () => { S = PRESETS[b.dataset.preset].make(); ui = { open: {}, errors: {}, draft: {} }; save(); location.hash = "#/" + HOME[S.role]; render(); toast(`Loaded “${PRESETS[S.preset].label}”`); },
+      "preset": () => { S = ensureAI(PRESETS[b.dataset.preset].make()); ui = { open: {}, errors: {}, draft: {} }; save(); location.hash = "#/" + HOME[S.role]; render(); toast(`Loaded “${PRESETS[S.preset].label}”`); },
       "import-gaps": () => {
         let added = 0, skipped = 0;
         FIXTURES.P05_GAPS.forEach((g) => { if (S.gaps.some((x) => x.skillId === g.skillId && x.status === "open") || S.gaps.some((x) => x.id === g.gapId)) { skipped++; return; }
@@ -647,7 +855,16 @@
       "judge-cancel": () => { ui.open.editLO = null; render(); },
       "close-open": () => { ui.open["close-" + b.dataset.id] = true; render(); const t = document.getElementById("cl-" + b.dataset.id); if (t) t.focus(); },
       "send-readiness": () => { S.handoffs.push({ id: nextId("HO-", S.handoffs), to: "P07", at: S.today, status: "sent", payload: readinessPayload() }); event("Sent a readiness summary to P07"); commit("Readiness summary sent to P07"); },
-      "export": () => { const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(blob); const a2 = document.createElement("a"); a2.href = u; a2.download = `waypoint-records-${S.today}.json`; a2.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+      "ask": () => { askQuestion(b.dataset.q); },
+      "chat-clear": () => { S.chat = []; ui.draft.ask = ""; commit("Conversation cleared. Handed-over questions stay with the coordinator."); },
+      "chat-flag": () => { const m = S.chat.find((x) => x.id === b.dataset.id); const id = nextId("Q-", S.handoffQ);
+        S.handoffQ.push({ id, q: m.q, from: m.by, at: S.today, status: "open", reason: `Student said the answer (${m.res.faqId}) did not fit the question.` });
+        m.flagged = id; event(`Sent question ${id} to the coordinator (answer did not fit)`); commit(`${id} sent to ${PEOPLE.coordinator.name}`); },
+      "match-gap": () => { const sk = b.dataset.skill, op = b.dataset.op;
+        if (S.gaps.some((g) => g.skillId === sk && g.status === "open")) { toast("This gap is already on the plan"); return; }
+        const id = nextId("GAP-", S.gaps); S.gaps.push({ id, studentId: "COOP-B001", skillId: sk, opportunityId: op, source: "match", reason: `${op} lists ${IPP_AI.skillName(sk)}; no reviewed evidence yet (matching, Sprint 2)`, createdAt: S.today, status: "open" });
+        event(`Added skill gap ${id} from matching (${op})`); commit(`${id} added to the preparation plan`); },
+      "export": () => { const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(blob); const a2 = document.createElement("a"); a2.href = u; a2.download = `teamp6p7-records-${S.today}.json`; a2.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
     }[a];
     if (go) { e.preventDefault(); go(); }
   });
@@ -656,6 +873,7 @@
     const el = e.target.closest("[data-change]"); if (!el) return;
     const c = el.dataset.change;
     if (c === "role") { S.role = el.value; save(); render(); toast(`Now viewing as ${me().name}`); }
+    if (c === "match-student") { S.matchStudent = el.value; save(); render(); }
     if (c === "assign") { const it = S.board.items.find((i) => i.key === el.dataset.key); it.assignee = el.value; save(); render(); }
     if (c === "milestone") { const m = S.milestones.find((x) => x.id === el.dataset.id); m.done = el.checked; m.at = el.checked ? S.today : null; event(`${el.checked ? "Completed" : "Reopened"} host milestone: ${m.text}`); commit(); }
   });
@@ -730,6 +948,17 @@
         if (bad.length) er.rule = `${bad.map((o) => o.id).join(", ")} cannot be marked achieved without evidence from this period.`;
         if (Object.keys(er).length) { ui.errors.final = er; return render(); }
         S.final.advisor = { by: me().name, at: S.today, outcomes, summary, nextGoal: next, period: PERIOD.id }; ui.errors.final = null; event("Recorded the final review for Period 1"); commit("Final review recorded for Period 1"); },
+      "ask": () => { const q = (fd.get("q") || "").trim(); if (q.length < 3) { ui.errors.ask = "Type a question first."; return render(); } ui.errors.ask = null; askQuestion(q); },
+      "handoff-reply": () => { const h = S.handoffQ.find((x) => x.id === f.dataset.id), r = (fd.get("reply") || "").trim();
+        if (words(r) < 4) { ui.errors["hr-" + h.id] = "Write a reply of at least four words."; return render(); }
+        Object.assign(h, { status: "answered", reply: r, by: me().name, answeredAt: S.today }); ui.errors["hr-" + h.id] = null; event(`Answered handed-over question ${h.id}`); commit(`Reply sent for ${h.id}`); },
+      "match-review": () => { const op = f.dataset.op, t = (fd.get("text") || "").trim();
+        if (words(t) < 4) { ui.errors["mr-" + op] = "Say what looks wrong or what you want checked (at least four words)."; return render(); }
+        const id = nextId("MR-", S.matchReviews); S.matchReviews.push({ id, studentId: "COOP-B001", opId: op, text: t, at: S.today, status: "open" });
+        ui.open["mr-" + op] = false; ui.errors["mr-" + op] = null; event(`Asked the coordinator to review match ${op} (${id})`); commit(`${id} sent to ${PEOPLE.coordinator.name}`); },
+      "match-decide": () => { const q = S.matchReviews.find((x) => x.id === f.dataset.id), r = (fd.get("reply") || "").trim(), dec = e.submitter ? e.submitter.value : "ok";
+        if (words(r) < 4) { ui.errors["md-" + q.id] = "Explain the decision to the student (at least four words)."; return render(); }
+        Object.assign(q, { status: "closed", decision: dec, reply: r, by: me().name, closedAt: S.today }); ui.errors["md-" + q.id] = null; event(`Reviewed match request ${q.id}: ${dec === "ok" ? "fine to apply" : "not suitable"}`); commit(`${q.id} answered`); },
       "date": () => { const v = fd.get("date"); if (v) { S.today = v; $("#settings").close(); commit(`Demo date set to ${d(v)}`); } }
     };
     if (handlers[kind]) handlers[kind]();

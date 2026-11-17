@@ -1,21 +1,37 @@
-# Waypoint: source code
+# Team P6/P7: co-op preparation, progress and AI features
 
-Classroom prototype for BUS2010 projects P06 (Internship Preparation LMS) and P07 (Co-op Learning Progress).
-All data is synthetic.
+Classroom prototype for BUS2010 IPP projects **P06** (internship preparation) and **P07** (co-op learning progress).
+Sprint 2 adds two AI features:
+
+- **Ask the assistant** (`#/assistant`): answers only from 12 approved FAQ entries and shows the source of each answer. Policy questions with no approved source (pay, GPA, credits, visas, remote work), low-confidence questions and requests for other students' data go to the co-op coordinator. No LLM is used.
+- **Internship matches** (`#/matches`): up to three open opportunities ranked by visible rules (required skills 40, desirable 15, interests 30, location 15). Eligibility is checked separately. Each match shows its reasons and skill gaps, and a skill gap can go straight onto the P06 preparation plan.
+- **AI checks** (`#/ai-checks`): reruns the assistant and matching tests live in the browser.
+- **Embed** (`#/embed`): the assistant on its own, for other teams to place in an iframe:
+  `<iframe src="https://lizhengxi25.github.io/waypoint/#/embed" title="IPP co-op assistant" width="380" height="600"></iframe>`
+
+All people, students, opportunities and records are synthetic. A match is decision support. A placement becomes official only when the university confirms it.
 
 ## Run
-- Built prototype: open `index.html` (repository root) or the published GitHub Pages URL in any modern browser (works offline).
-- From source: open `source/src/index.html`.
+Live site: https://lizhengxi25.github.io/waypoint/ (the repository name is kept from Sprint 1; the product is now Team P6/P7). Or open `index.html` in a browser. It works offline. Records are saved in each browser, so use **Demo scenarios and date** to load data:
+- *Fresh start* (23 Nov 2026): empty records, used for the Sprint 2 demo.
+- *Jira reviewed (Sprint 2 demo)* (28 Nov 2026): Jira evidence is reviewed, so you can rerun matching.
+- *Mid-placement* and *End of period*: the P07 journey.
 
-## Edit
-- `src/data.js`: people, skills, modules, learning outcomes, fixtures for P04/P05, demo scenarios
-- `src/app.js`: screens, rules and handoffs (vanilla JavaScript, no framework)
-- `src/styles.css`: design tokens and components
-- `src/fonts/`: IBM Plex Sans, IBM Plex Mono and Source Serif 4 (SIL Open Font License)
+## Files
+| Path | What it is |
+|---|---|
+| `index.html` | Built single-file app (published by GitHub Pages) |
+| `data/` | Synthetic sample data: students, opportunities, approved FAQ, skill vocabulary (CSV) |
+| `source/src/ai_data.js` | Approved FAQ, synthetic students and opportunities, weights, test plan, failure log |
+| `source/src/ai_engine.js` | Assistant retrieval and matching rules (pure functions) |
+| `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the blue theme |
+| `source/tests/` | `ai_test.py` (28 checks) and `acceptance_test.py` (34 checks), with their result JSON |
 
-## Build
-`python3 build.py` writes `dist/Waypoint.html` (copy it to `index.html` to publish) with CSS, scripts and fonts embedded.
-
-## Test
-`pip install playwright && playwright install chromium`, then `python3 tests/acceptance_test.py`.
-The script replays the journey from an empty record and checks every acceptance criterion (34 checks).
+## Build and test
+```
+cd source
+python3 build.py                      # writes dist/TeamP6P7.html; copy it to ../index.html
+pip install playwright && playwright install chromium
+python3 tests/ai_test.py              # 28 checks
+python3 tests/acceptance_test.py      # 34 checks
+```

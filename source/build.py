@@ -11,7 +11,9 @@ for fam, file, weight, style in [("Plex Sans","plex.woff2","400 600","normal"),(
 html = html.replace('<link rel="stylesheet" href="fonts/fonts.css"><!--FONTS-->', "<style>" + "".join(fonts) + "</style>")
 html = html.replace('<link rel="stylesheet" href="styles.css">', "<style>\n" + (src/"styles.css").read_text() + "\n</style>")
 html = html.replace('<script src="data.js"></script>', "<script>\n" + (src/"data.js").read_text() + "\n</script>")
+for js in ["ai_data.js", "ai_engine.js"]:
+    html = html.replace(f'<script src="{js}"></script>', "<script>\n" + (src/js).read_text() + "\n</script>")
 html = html.replace('<script src="app.js"></script>', "<script>\n" + (src/"app.js").read_text() + "\n</script>")
 (root/"dist").mkdir(exist_ok=True)
-(root/"dist"/"Waypoint.html").write_text(html)
-print("dist/Waypoint.html", len(html)//1024, "KB")
+(root/"dist"/"TeamP6P7.html").write_text(html)
+print("dist/TeamP6P7.html", len(html)//1024, "KB")

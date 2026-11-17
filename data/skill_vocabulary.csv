@@ -1,0 +1,10 @@
+skill_id,name,accepted_terms,status
+SK-JIRA,Jira work tracking,jira; jira software; atlassian jira; work tracking in jira,agreed with P01/P05 (Sprint 1)
+SK-SQL,SQL,sql; sql for analytics; mysql; postgresql; postgres; sql server; t-sql,agreed with P01/P05 (Sprint 1)
+SK-VIZ,Data visualisation,data visualisation; data visualization; tableau; power bi; powerbi; dashboards; dashboard design,agreed with P01/P05 (Sprint 1)
+SK-PY,Python,python; python programming; python 3; pandas,proposed (confirm at SoS)
+SK-EXCEL,Spreadsheets,excel; microsoft excel; spreadsheets; google sheets,proposed (confirm at SoS)
+SK-COMM,Presenting to stakeholders,presenting; presentation; public speaking; stakeholder communication,proposed (confirm at SoS)
+SK-UX,User research,user research; ux research; usability testing; customer interviews,proposed (confirm at SoS)
+SK-STATS,Statistics,statistics; statistical analysis; regression; r programming,proposed (confirm at SoS)
+SK-FIN,Financial modelling,financial modelling; financial modeling; valuation; dcf,proposed (confirm at SoS)

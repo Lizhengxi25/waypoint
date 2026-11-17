@@ -1,4 +1,4 @@
-/* Waypoint — synthetic classroom data. All names, organisations' roles and records are invented. */
+/* Team P6/P7 — synthetic classroom data. All names, organisations' roles and records are invented. */
 
 const PEOPLE = {
   student:    { id: "COOP-B001", name: "Layla Hassan",       role: "Student",                 short: "Layla" },
@@ -261,8 +261,20 @@ function presetEnd() {
   return s;
 }
 
+/* Sprint 2 demo: P06 finished (Jira reviewed) while listings are still open, so matching can be rerun. */
+function presetReviewed() {
+  const m = presetMidpoint();
+  const s = emptyState("2026-11-28");
+  s.preset = "reviewed";
+  s.role = "student";
+  s.gaps = m.gaps; s.resources = m.resources; s.board = m.board; s.submissions = m.submissions; s.handoffs = m.handoffs;
+  s.events = m.events.filter((e) => e.at <= "2026-11-28");
+  return s;
+}
+
 const PRESETS = {
   fresh:    { label: "Fresh start", note: "No records. Run P06 end to end, then load the placement.", make: presetFresh },
+  reviewed: { label: "Jira reviewed (Sprint 2 demo)", note: "28 Nov 2026. EV-0001 is demonstrated; rerun matching to see the change.", make: presetReviewed },
   midpoint: { label: "Mid-placement", note: "P06 complete; Week 10 of the Emirates placement.", make: presetMidpoint },
   end:      { label: "End of period", note: "Period 1 closed; ready for the final review.", make: presetEnd }
 };

@@ -1,0 +1,206 @@
+[
+ {
+  "ac": "P06-X",
+  "desc": "P05 gaps imported",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-EXC",
+  "desc": "Duplicate open gap is blocked with an explanation",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC1",
+  "desc": "Gap appears on plan linked to its module",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC1",
+  "desc": "Module shows the evidence required (4-item checklist)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC2",
+  "desc": "Resource completion does not mark the skill demonstrated",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC3",
+  "desc": "Moving an item without an owner is blocked",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC3",
+  "desc": "Status change requires a reason",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC3",
+  "desc": "Student created, assigned and moved items with reasons on the simulated board",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-EXC",
+  "desc": "Too-short evidence explanation is rejected with guidance",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-X",
+  "desc": "Evidence EV-0001 v1 submitted and board locked",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
+  "desc": "Demonstrated cannot be recorded unless every criterion is met",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
+  "desc": "Reviewer requests a revision with a comment",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
+  "desc": "Student sees the reviewer's revision request",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
+  "desc": "Resubmission checked against checklist; original and revision both kept",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P06-AC4",
+  "desc": "P01 receives skill, evidence ID, outcome and review date",
+  "ok": true,
+  "detail": "{\"studentId\": \"COOP-B001\", \"skillId\": \"SK-JIRA\", \"evidenceId\": \"EV-0001\", \"outcome\": \"demonstrated\", \"reviewer\": \"Maya Chen\", \"reviewDate\": \"2026-11-23\"}"
+ },
+ {
+  "ac": "P06-X",
+  "desc": "Readiness summary sent to P07 (internal handoff)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Accepted offer without university confirmation is rejected",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-X",
+  "desc": "Confirmed placement PL-028 received from P04 fixture",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Goal without a mapped outcome is rejected",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-X",
+  "desc": "Learning agreement: 3 goals mapped to outcomes, agreed by 3 parties",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Log entry that is too brief is rejected with guidance",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC1",
+  "desc": "Log submitted, feedback requested, revised; original, feedback and revision all visible",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC2",
+  "desc": "Outcomes with no linked evidence are marked missing",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC2",
+  "desc": "A judgement cannot be saved without linked evidence",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC2",
+  "desc": "Judgement saved with evidence link",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC2",
+  "desc": "Progress view states host milestones do not demonstrate outcomes",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC3",
+  "desc": "Action has owner and due date; overdue action is flagged",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Closing an action without closure evidence is rejected",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC3",
+  "desc": "Closed action shows closure evidence; completed and open actions visible",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Final review is locked before the period ends",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC4",
+  "desc": "Outcome cannot be marked achieved without in-period evidence",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-AC4",
+  "desc": "Final view separates employer feedback from academic judgement and records the period",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "X",
+  "desc": "Records persist after reload",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "X",
+  "desc": "No JavaScript errors during the run",
+  "ok": true,
+  "detail": ""
+ }
+]
