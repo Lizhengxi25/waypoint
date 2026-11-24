@@ -945,12 +945,17 @@
       placement: pagePlacement, agreement: pageAgreement, logbook: pageLogbook, progress: pageProgress, final: pageFinal, records: pageRecords,
       assistant: pageAssistant, matches: pageMatches, "ai-checks": pageAIChecks };
     const y = window.scrollY;
-    if (r === "embed") { document.body.classList.add("embedded"); document.getElementById("root").innerHTML = pageEmbed() + `<div class="toast" role="status" aria-live="polite" id="toast"></div>`; document.title = "IPP co-op assistant · Team P6/P7"; const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight; if (ui.anim && !ui.anim.started) playAnswer(); return; }
+    /* Keep whatever the user is typing (and the caret) when the page redraws. */
+    const ae = document.activeElement, focusId = ae && ae.id && /^(INPUT|TEXTAREA)$/.test(ae.tagName) ? ae.id : null;
+    const caret = focusId && typeof ae.selectionStart === "number" ? [ae.selectionStart, ae.selectionEnd] : null;
+    const restore = () => { if (!focusId) return; const el = document.getElementById(focusId); if (!el) return; el.focus({ preventScroll: true }); if (caret) try { el.setSelectionRange(caret[0], caret[1]); } catch (e) {} };
+    if (r === "embed") { document.body.classList.add("embedded"); document.getElementById("root").innerHTML = pageEmbed() + `<div class="toast" role="status" aria-live="polite" id="toast"></div>`; document.title = "IPP co-op assistant · Team P6/P7"; const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight; restore(); if (ui.anim && !ui.anim.started) playAnswer(); return; }
     document.body.classList.remove("embedded");
     document.getElementById("root").innerHTML = shell((pages[r] || pageNotFound)());
     window.scrollTo(0, y);
     const cl = $("#chatlog"); if (cl) cl.scrollTop = cl.scrollHeight;
     const titleEl = document.querySelector("h1"); document.title = (titleEl ? titleEl.textContent + " · " : "") + "Team P6/P7";
+    restore();
     if (ui.anim && !ui.anim.started) playAnswer();
   }
 
@@ -961,7 +966,7 @@
     const a = ui.anim; a.started = true;
     const m = S.chat.find((x) => x.id === a.id), steps = thoughtSteps(m), t0 = performance.now();
     const box = $("#thinking"), list = box && box.querySelector(".think-steps"), target = $(".anim-target"), log = $("#chatlog");
-    const lockables = [...document.querySelectorAll("form[data-form=ask] input, form[data-form=ask] button, .pill")];
+    const lockables = [...document.querySelectorAll("form[data-form=ask] button, .pill")];
     lockables.forEach((x) => (x.disabled = true));
     const alive = () => box && box.isConnected;
     const scroll = () => { if (log) log.scrollTop = log.scrollHeight; };
@@ -1056,7 +1061,7 @@
     const m = { id: nextId("M-", S.chat), q, by: by || me().name, at: S.today, res: { kind: res.kind, faqId: res.faq ? res.faq.id : null, score: res.score, reason: res.reason, guard: res.guard || null, ranked: res.ranked } };
     if (llm) m.llm = llm;
     if (res.kind === "handoff") { const id = nextId("Q-", S.handoffQ); S.handoffQ.push({ id, q, from: me().name, at: S.today, status: "open", reason: res.reason }); m.handoffId = id; event(`Assistant handed question ${id} to the coordinator`); }
-    S.chat.push(m); ui.draft.ask = "";
+    S.chat.push(m); if (!llm) ui.draft.ask = "";
     const note = res.kind === "handoff" ? `Sent to ${PEOPLE.coordinator.name}: no approved answer` : null;
     if (ANIMATE) { ui.anim = { id: m.id, started: false, toast: note }; commit(null); } else commit(note);
     const inp = $("#askq"); if (inp) inp.focus();
@@ -1119,6 +1124,7 @@
     if (go) { e.preventDefault(); go(); }
   });
 
+  document.addEventListener("input", (e) => { if (e.target && e.target.id === "askq") ui.draft.ask = e.target.value; });
   document.addEventListener("change", (e) => {
     const el = e.target.closest("[data-change]"); if (!el) return;
     const c = el.dataset.change;
