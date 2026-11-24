@@ -46,12 +46,16 @@ How to answer
 What you must not do
 - Do not add facts the entries do not state: no policy, dates, numbers, pay, grades, visas or names of your own.
 - Do not approve placements, change records or discuss other students.
-- Set handoff to true ONLY when none of the entries is relevant to the question. Then leave answer empty; a co-op coordinator will reply.
+- Set handoff to true ONLY when the student asks a real question and none of the entries is relevant. Then leave answer empty; a co-op coordinator will reply.
+
+Greetings and small talk
+- If the message is a greeting, thanks or small talk (for example "hi", "thanks", "who are you?"), set small_talk to true, handoff to false, faq_ids to [], and reply in one or two friendly sentences: say what you can help with (internship matching, preparing a skill such as Jira, placements, the co-op log) and invite a question. Give no facts in a small-talk reply.
 
 Output
 - answer: your reply to the student.
 - faq_ids: the IDs of every entry you used (only IDs from the list).
 - handoff: true or false, as above.
+- small_talk: true only for greetings and small talk.
 - reason: one short sentence on which entries you used, or why none fit."""
 
 SCHEMA = {
@@ -64,9 +68,10 @@ SCHEMA = {
             "answer": {"type": "string", "description": "Answer to the student, or empty when handing off"},
             "faq_ids": {"type": "array", "items": {"type": "string"}},
             "handoff": {"type": "boolean"},
+            "small_talk": {"type": "boolean"},
             "reason": {"type": "string", "description": "One short sentence: which entry answers it, or why none does"},
         },
-        "required": ["answer", "faq_ids", "handoff", "reason"],
+        "required": ["answer", "faq_ids", "handoff", "small_talk", "reason"],
     },
 }
 
@@ -89,6 +94,8 @@ def validate_reply(raw, candidate_ids):
         return {"answer": "", "faq_ids": [], "handoff": True, "reason": "The model did not return valid JSON."}
     ids = [i for i in r.get("faq_ids", []) if i in candidate_ids]
     answer = str(r.get("answer", "")).strip()
+    if r.get("small_talk") and answer and not r.get("handoff"):
+        return {"answer": answer[:400], "faq_ids": [], "handoff": False, "small_talk": True, "reason": str(r.get("reason", "")).strip()[:300]}
     if r.get("handoff") or not ids or not answer:
         why = str(r.get("reason", "")).strip() or "No approved entry answers this question."
         if not r.get("handoff") and not ids:

@@ -752,7 +752,9 @@
     const msgs = S.chat.map((m) => {
       const user = `<div class="msg user"><div class="bubble">${esc(m.q)}</div><div class="meta">${esc(m.by)} · ${d(m.at)}</div></div>`;
       let bot;
-      if (m.res.kind === "answer") {
+      if (m.res.kind === "chat") {
+        bot = `<div class="msg bot"><div class="bubble"><p>${esc(m.llm ? m.llm.text : "")}</p><div class="src">${m.llm && m.llm.model ? `${esc(modelName(m.llm.model))} (AI) · ` : ""}general reply, no policy information</div></div></div>`;
+      } else if (m.res.kind === "answer") {
         const f = faqById(m.res.faqId);
         const ai = m.llm && m.llm.text;
         const cited = ai ? m.llm.ids.map(faqById).filter(Boolean) : [];
@@ -1026,6 +1028,7 @@
      Only when the page is served by our local server, which holds the API key. On GitHub Pages or from a file
      the assistant stays retrieval-only. Privacy and policy guards run first and never reach the model. */
   let LLM = null, pendingAsk = null;
+  const GREETING = /^\s*(hi|hello|hey|salam|good (morning|afternoon|evening)|thanks?|thank you)\b[\s!.?]*$/i;
   const modelName = (id) => String(id || "").split("/").pop().split(/[-_]/).map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
   function detectLLM() {
     if (!/^https?:$/.test(location.protocol)) return;
@@ -1042,6 +1045,7 @@
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
       .then((j) => {
         clearTimeout(timer); const by = pendingAsk.by; pendingAsk = null;
+        if (j.small_talk && String(j.answer || "").trim()) return finishAsk(q, { kind: "chat", score: res.score, ranked: res.ranked, reason: j.reason || "Greeting or small talk" }, Object.assign(base, { text: String(j.answer).trim(), ids: [] }), by);
         const ids = (j.faq_ids || []).filter((id) => base.cands.includes(id) && faqById(id));
         if (j.handoff || !ids.length || !String(j.answer || "").trim())
           return finishAsk(q, { kind: "handoff", score: res.score, ranked: res.ranked, guard: "llm", reason: `${modelName(base.model)} found no approved entry that answers this. ${j.reason || ""}`.trim() }, base, by);
@@ -1055,6 +1059,7 @@
     if (pendingAsk) return;
     const res = IPP_AI.answer(q, { selfId: "COOP-B001" });
     if (LLM && res.guard !== "privacy" && res.guard !== "policy") return askLLM(q, res);
+    if (GREETING.test(q)) return finishAsk(q, { kind: "chat", score: 0, ranked: res.ranked, reason: "Greeting" }, { text: `Hi ${PEOPLE.student.short}! Ask me about internship matching, preparing a skill such as Jira, your placement or your co-op log.` });
     finishAsk(q, res, null);
   }
   function finishAsk(q, res, llm, by) {
@@ -1206,7 +1211,7 @@
         if (bad.length) er.rule = `${bad.map((o) => o.id).join(", ")} cannot be marked achieved without evidence from this period.`;
         if (Object.keys(er).length) { ui.errors.final = er; return render(); }
         S.final.advisor = { by: me().name, at: S.today, outcomes, summary, nextGoal: next, period: PERIOD.id }; ui.errors.final = null; event("Recorded the final review for Period 1"); commit("Final review recorded for Period 1"); },
-      "ask": () => { const q = (fd.get("q") || "").trim(); if (q.length < 3) { ui.errors.ask = "Type a question first."; return render(); } ui.errors.ask = null; askQuestion(q); },
+      "ask": () => { const q = (fd.get("q") || "").trim(); if (!q) { ui.errors.ask = "Type a question first."; return render(); } ui.errors.ask = null; askQuestion(q); },
       "handoff-reply": () => { const h = S.handoffQ.find((x) => x.id === f.dataset.id), r = (fd.get("reply") || "").trim();
         if (words(r) < 4) { ui.errors["hr-" + h.id] = "Write a reply of at least four words."; return render(); }
         Object.assign(h, { status: "answered", reply: r, by: me().name, answeredAt: S.today }); ui.errors["hr-" + h.id] = null; event(`Answered handed-over question ${h.id}`); commit(`Reply sent for ${h.id}`); },
