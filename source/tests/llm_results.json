@@ -1,0 +1,62 @@
+[
+ {
+  "ac": "LLM",
+  "desc": "Assistant shows it is using Inkling 2 Mini via OpenRouter",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Model answer is shown with the approved source it used",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Student can check the approved text behind the AI answer",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Only the question and approved entries are sent (no student records)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Policy question never reaches the model and goes to the coordinator",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Question about another student never reaches the model (privacy rule)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Answer citing an entry we did not send is turned into a handoff",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "Model handoff goes to the coordinator queue with its reason",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM",
+  "desc": "If the model fails, the approved retrieval answer is shown and labelled",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "X",
+  "desc": "No JavaScript errors during the run",
+  "ok": true,
+  "detail": ""
+ }
+]

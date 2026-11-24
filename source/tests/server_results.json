@@ -1,0 +1,68 @@
+[
+ {
+  "ac": "LLM-SRV",
+  "desc": "A grounded answer citing a given entry is kept",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "An answer citing an entry we did not send becomes a handoff",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "An answer with no citation becomes a handoff",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "Text that is not JSON becomes a handoff",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "The prompt holds only the question and the approved entries",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "Without a key the server reports the model as unavailable",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "Without a key /api/chat refuses (503) and calls nothing",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "With a key the server reports the model, never the key",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "/api/chat returns the checked answer and the model name",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "A malformed request is refused (400)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "LLM-SRV",
+  "desc": "The served page is the built app",
+  "ok": true,
+  "detail": ""
+ }
+]

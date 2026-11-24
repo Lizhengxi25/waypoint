@@ -58,16 +58,22 @@ const IPP_AI = (function () {
   }
 
   /* Returns { kind: "answer"|"handoff", faq?, score, matched:[], ranked:[{id,score}], reason } */
-  function answer(question, opts) {
-    const selfId = (opts && opts.selfId) || "COOP-B001";
+  function rank(question) {
     const q = tokens(question);
-    const ranked = DOCS.map((d) => {
+    return DOCS.map((d) => {
       const uniq = [...new Set(q)];
       const total = uniq.reduce((s, t) => s + idf(t), 0) || 1;
       const hit = uniq.filter((t) => d.toks.has(t));
       const weight = hit.reduce((s, t) => s + idf(t) * Math.min(d.tf[t], 4), 0);
       return { id: d.f.id, f: d.f, score: hit.reduce((s, t) => s + idf(t), 0) / total, weight, matched: hit };
     }).sort((a, b) => (Math.abs(b.score - a.score) > 0.05 ? b.score - a.score : b.weight - a.weight) || a.id.localeCompare(b.id));
+  }
+  /* The closest approved entries, sent to the LLM as its only allowed sources (Sprint 3). */
+  const candidates = (question, n) => rank(question).slice(0, n || 4).map((r) => r.f);
+  function answer(question, opts) {
+    const selfId = (opts && opts.selfId) || "COOP-B001";
+    const q = tokens(question);
+    const ranked = rank(question);
     // Near-ties are broken by how central the shared terms are to each entry, not by ID order (fix for F-02).
     const best = ranked[0];
     const top = ranked.slice(0, 3).map((r) => ({ id: r.id, score: +r.score.toFixed(2) }));
@@ -167,6 +173,6 @@ const IPP_AI = (function () {
     };
   }
 
-  return { tokens, answer, match, normalizeSkill, normalizeSkills, eligibility, skillName, THRESHOLD };
+  return { tokens, answer, candidates, match, normalizeSkill, normalizeSkills, eligibility, skillName, THRESHOLD };
 })();
 if (typeof window !== "undefined") window.IPP_AI = IPP_AI;

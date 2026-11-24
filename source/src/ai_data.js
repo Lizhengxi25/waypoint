@@ -3,7 +3,7 @@
    No real student records are used. Employers other than the binder's Emirates/Etihad examples are fictional. */
 
 const AI_META = {
-  assistantVersion: "FAQ assistant v0.2 (approved-source retrieval, no LLM)",
+  assistantVersion: "FAQ assistant v0.3 (approved-source retrieval; when the local server has an OpenRouter key, Inkling 2 Mini writes the answer from the approved entries only)",
   matcherVersion: "Matching rules v0.2 (transparent weighted rules)",
   kbApprovedBy: "Sara Al Hammadi (co-op coordinator persona)",
   kbApprovedOn: "2026-11-20",

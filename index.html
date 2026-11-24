@@ -1085,7 +1085,7 @@ const PRESETS = {
    No real student records are used. Employers other than the binder's Emirates/Etihad examples are fictional. */
 
 const AI_META = {
-  assistantVersion: "FAQ assistant v0.2 (approved-source retrieval, no LLM)",
+  assistantVersion: "FAQ assistant v0.3 (approved-source retrieval; when the local server has an OpenRouter key, Inkling 2 Mini writes the answer from the approved entries only)",
   matcherVersion: "Matching rules v0.2 (transparent weighted rules)",
   kbApprovedBy: "Sara Al Hammadi (co-op coordinator persona)",
   kbApprovedOn: "2026-11-20",
@@ -1389,16 +1389,22 @@ const IPP_AI = (function () {
   }
 
   /* Returns { kind: "answer"|"handoff", faq?, score, matched:[], ranked:[{id,score}], reason } */
-  function answer(question, opts) {
-    const selfId = (opts && opts.selfId) || "COOP-B001";
+  function rank(question) {
     const q = tokens(question);
-    const ranked = DOCS.map((d) => {
+    return DOCS.map((d) => {
       const uniq = [...new Set(q)];
       const total = uniq.reduce((s, t) => s + idf(t), 0) || 1;
       const hit = uniq.filter((t) => d.toks.has(t));
       const weight = hit.reduce((s, t) => s + idf(t) * Math.min(d.tf[t], 4), 0);
       return { id: d.f.id, f: d.f, score: hit.reduce((s, t) => s + idf(t), 0) / total, weight, matched: hit };
     }).sort((a, b) => (Math.abs(b.score - a.score) > 0.05 ? b.score - a.score : b.weight - a.weight) || a.id.localeCompare(b.id));
+  }
+  /* The closest approved entries, sent to the LLM as its only allowed sources (Sprint 3). */
+  const candidates = (question, n) => rank(question).slice(0, n || 4).map((r) => r.f);
+  function answer(question, opts) {
+    const selfId = (opts && opts.selfId) || "COOP-B001";
+    const q = tokens(question);
+    const ranked = rank(question);
     // Near-ties are broken by how central the shared terms are to each entry, not by ID order (fix for F-02).
     const best = ranked[0];
     const top = ranked.slice(0, 3).map((r) => ({ id: r.id, score: +r.score.toFixed(2) }));
@@ -1498,7 +1504,7 @@ const IPP_AI = (function () {
     };
   }
 
-  return { tokens, answer, match, normalizeSkill, normalizeSkills, eligibility, skillName, THRESHOLD };
+  return { tokens, answer, candidates, match, normalizeSkill, normalizeSkills, eligibility, skillName, THRESHOLD };
 })();
 if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
 
@@ -2244,6 +2250,12 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
     const last = r.kind === "answer"
       ? (r.guard === "privacy" ? "About another student, so the privacy rule applies" : `Best match ${r.faqId} clears the ${IPP_AI.THRESHOLD} threshold`)
       : r.guard === "policy" ? "Policy topic with no approved source" : "Not confident enough to answer";
+    if (m.llm && !m.llm.error) {
+      const nm = modelName(m.llm.model);
+      return ["Reading your question", `Searching ${FAQ.length} approved sources`, top ? `Closest: ${top}` : "No close entries found",
+        `Asked ${nm} to answer only from ${m.llm.cands.join(", ")}`, r.kind === "answer" ? `${nm} answered from ${m.llm.ids.join(", ")}` : "No approved entry answers it, so a person will"];
+    }
+    if (m.llm && m.llm.error) return ["Reading your question", `Searching ${FAQ.length} approved sources`, top ? `Closest: ${top}` : "No close entries found", `${modelName(m.llm.model)} did not respond, so I used the approved text`, last];
     return ["Reading your question", `Searching ${FAQ.length} approved sources`, top ? `Closest: ${top}` : "No close entries found", last];
   }
   const thoughtHTML = (m) => `<details class="thought"><summary>${m.thinkMs ? `Thought for ${(m.thinkMs / 1000).toFixed(1)} s` : "How I answered"}</summary><ol>${thoughtSteps(m).map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
@@ -2254,8 +2266,12 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
       let bot;
       if (m.res.kind === "answer") {
         const f = faqById(m.res.faqId);
-        bot = `<div class="msg bot">${thoughtHTML(m)}<div class="bubble"><p>${esc(f.a)}</p>
-          <div class="src" title="Match score ${m.res.score.toFixed(2)}">Approved source · ${f.id} · ${esc(f.source)}${m.res.guard === "privacy" ? " · privacy rule" : ""}</div>
+        const ai = m.llm && m.llm.text;
+        const cited = ai ? m.llm.ids.map(faqById).filter(Boolean) : [];
+        bot = `<div class="msg bot">${thoughtHTML(m)}<div class="bubble"><p>${esc(ai ? m.llm.text : f.a)}</p>
+          ${ai ? `<div class="src">Written by ${esc(modelName(m.llm.model))} (AI) from approved source${cited.length > 1 ? "s" : ""} · ${cited.map((c) => `${c.id} · ${esc(c.source)}`).join("; ")}</div>
+          <details class="thought" style="margin-top:6px"><summary>Check the approved text</summary>${cited.map((c) => `<p class="small" style="margin:6px 0"><span class="id">${c.id}</span> ${esc(c.a)}</p>`).join("")}</details>`
+          : `<div class="src" title="Match score ${m.res.score.toFixed(2)}">Approved source · ${f.id} · ${esc(f.source)}${m.res.guard === "privacy" ? " · privacy rule" : ""}${m.llm && m.llm.error ? " · AI model unavailable, approved text shown" : ""}</div>`}
           <div class="btn-row" style="margin-top:8px">${f.link && !embed ? `<a class="btn secondary sm" href="${f.link}">Open page</a>` : ""}
           ${m.flagged ? `<span class="small muted">Sent to a coordinator</span>` : `<button class="btn ghost sm" type="button" data-action="chat-flag" data-id="${m.id}">Not what you asked? Ask a person</button>`}</div></div></div>`;
       } else {
@@ -2268,14 +2284,16 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
         return user + `<div class="msg bot thinking" id="thinking"><div class="bubble"><div class="think-head"><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>Thinking</div><ol class="think-steps"></ol></div></div><div class="anim-target" hidden>${bot}</div>`;
       return user + bot;
     }).join("");
+    const waiting = pendingAsk ? `<div class="msg user"><div class="bubble">${esc(pendingAsk.q)}</div><div class="meta">${esc(pendingAsk.by)} · ${d(pendingAsk.at)}</div></div>
+      <div class="msg bot thinking" id="llm-wait"><div class="bubble"><div class="think-head"><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>Asking ${esc(modelName(LLM && LLM.model))} to answer from approved sources</div></div></div>` : "";
     const empty = `<div class="msg bot"><div class="bubble"><p>Hi ${esc(PEOPLE.student.short)}. I answer questions about internship matching, preparation and co-op progress, using only approved sources. I can’t make decisions or approve placements.</p></div></div>`;
-    return `<div class="chat" aria-live="polite" id="chatlog">${msgs || empty}</div>
+    return `<div class="chat" aria-live="polite" id="chatlog">${msgs || (waiting ? "" : empty)}${waiting}</div>
       <form class="chat-form" data-form="ask"><label class="sr-only" for="askq">Your question</label>
         <input class="input" id="askq" name="q" autocomplete="off" placeholder="Ask about matching, preparation or your co-op" value="${esc(ui.draft.ask || "")}">
-        <button class="btn" type="submit">Ask</button></form>
+        <button class="btn" type="submit" ${pendingAsk ? "disabled" : ""}>Ask</button></form>
       ${ui.errors.ask ? `<p class="small" style="color:var(--red);margin:6px 0 0">${esc(ui.errors.ask)}</p>` : ""}
       <div class="suggest" aria-label="Suggested questions">${AI_SUGGESTED.map((q) => `<button type="button" class="pill" data-action="ask" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-      <p class="foot" style="margin-top:14px;font-size:12px">Decision support only. It can’t approve placements, change records or discuss other students.</p>`;
+      <p class="foot" style="margin-top:14px;font-size:12px">Decision support only. It can’t approve placements, change records or discuss other students. <span id="ai-mode">${LLM ? `AI model: ${esc(modelName(LLM.model))} via OpenRouter, answering only from approved sources.` : "Approved answers only (retrieval mode)."}</span></p>`;
   }
 
   function pageAssistant() {
@@ -2511,10 +2529,44 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
   let toastTimer;
   function toast(msg) { const t = $("#toast"); if (!t) return; t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
 
+  /* ================= Sprint 3: LLM assistant (OpenRouter, via source/server.py) =================
+     Only when the page is served by our local server, which holds the API key. On GitHub Pages or from a file
+     the assistant stays retrieval-only. Privacy and policy guards run first and never reach the model. */
+  let LLM = null, pendingAsk = null;
+  const modelName = (id) => String(id || "").split("/").pop().split(/[-_]/).map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
+  function detectLLM() {
+    if (!/^https?:$/.test(location.protocol)) return;
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 2500);
+    fetch("api/llm", { signal: ctl.signal }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.available) { LLM = { model: j.model }; render(); } }).catch(() => {});
+  }
+  function askLLM(q, res) {
+    const cands = IPP_AI.candidates(q, 4);
+    pendingAsk = { q, by: me().name, at: S.today }; ui.draft.ask = ""; render();
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000);
+    const base = { model: LLM.model, cands: cands.map((f) => f.id) };
+    fetch("api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+      body: JSON.stringify({ question: q, candidates: cands.map((f) => ({ id: f.id, topic: f.topic, q: f.q, a: f.a, source: f.source })) }) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((j) => {
+        clearTimeout(timer); const by = pendingAsk.by; pendingAsk = null;
+        const ids = (j.faq_ids || []).filter((id) => base.cands.includes(id) && faqById(id));
+        if (j.handoff || !ids.length || !String(j.answer || "").trim())
+          return finishAsk(q, { kind: "handoff", score: res.score, ranked: res.ranked, guard: "llm", reason: `${modelName(base.model)} found no approved entry that answers this. ${j.reason || ""}`.trim() }, base, by);
+        finishAsk(q, { kind: "answer", faq: faqById(ids[0]), score: res.score, ranked: res.ranked, reason: j.reason || `Answered from ${ids.join(", ")}` }, Object.assign(base, { text: String(j.answer).trim(), ids }), by);
+      })
+      .catch(() => { clearTimeout(timer); const by = pendingAsk ? pendingAsk.by : me().name; pendingAsk = null; finishAsk(q, res, Object.assign(base, { error: true }), by); });
+  }
+
   /* ================= Actions ================= */
   function askQuestion(q) {
+    if (pendingAsk) return;
     const res = IPP_AI.answer(q, { selfId: "COOP-B001" });
-    const m = { id: nextId("M-", S.chat), q, by: me().name, at: S.today, res: { kind: res.kind, faqId: res.faq ? res.faq.id : null, score: res.score, reason: res.reason, guard: res.guard || null, ranked: res.ranked } };
+    if (LLM && res.guard !== "privacy" && res.guard !== "policy") return askLLM(q, res);
+    finishAsk(q, res, null);
+  }
+  function finishAsk(q, res, llm, by) {
+    const m = { id: nextId("M-", S.chat), q, by: by || me().name, at: S.today, res: { kind: res.kind, faqId: res.faq ? res.faq.id : null, score: res.score, reason: res.reason, guard: res.guard || null, ranked: res.ranked } };
+    if (llm) m.llm = llm;
     if (res.kind === "handoff") { const id = nextId("Q-", S.handoffQ); S.handoffQ.push({ id, q, from: me().name, at: S.today, status: "open", reason: res.reason }); m.handoffId = id; event(`Assistant handed question ${id} to the coordinator`); }
     S.chat.push(m); ui.draft.ask = "";
     const note = res.kind === "handoff" ? `Sent to ${PEOPLE.coordinator.name}: no approved answer` : null;
@@ -2682,6 +2734,7 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
     if (handlers[kind]) handlers[kind]();
   });
 
+  detectLLM();
   window.addEventListener("hashchange", () => { ui.errors = {}; render(); const m = $("#main"); if (m && !location.hash.includes("#task")) m.focus({ preventScroll: true }); window.scrollTo(0, 0); });
   render();
   if (location.hash.endsWith("#task")) { const t = document.getElementById("task"); if (t) t.scrollIntoView(); }

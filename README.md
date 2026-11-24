@@ -11,6 +11,7 @@ Classroom prototype for BUS2010 IPP projects **P06** (internship preparation) an
 - The P01–P03 team's data file (profiles and published listings, 24 Nov) is bundled in `data/p01p03/` (`source/tools/update_p01p03.py`). P06 shows Layla's latest submitted P01 profile, and imports are checked against it: a gap built on an old profile or listing version, or for an unpublished listing, is not accepted.
 - The look follows the shared Coop Platform frame of the P04/P05 app (navy sidebar with the IPP mark, Inter, white cards, "Demo only" banner).
 - Approved FAQ answers from the P01–P03 team can be added with `source/tools/import_faq.py` (see below).
+- **AI model for the assistant (optional):** when the app is run with `source/server.py` and an OpenRouter key in `.env`, the assistant asks **Inkling 2 Mini** (`thinkingmachines/inkling-2-mini`) to write the answer, using only the closest approved FAQ entries. Privacy and policy questions never reach the model. An answer that cites no approved entry, or an entry we did not send, goes to the coordinator. Students can open the approved text behind each AI answer. Only the question and the approved entries are sent: no student records. Without the server (GitHub Pages, or opening the file), the assistant stays retrieval-only.
 
 Sprint 2 added two AI features:
 
@@ -40,6 +41,7 @@ Live site: https://lizhengxi25.github.io/waypoint/ (the repository name is kept 
 | `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the shared Coop Platform theme (navy #0C2840, blue #144673, gold #D9BA82) |
 | `source/src/faq_partner.js` | Approved FAQ answers from the P01–P03 team (generated; empty until their file arrives) |
 | `source/tools/import_faq.py` | Turns their Section / Question / Answer file into `faq_partner.js` and `data/faq_partner.csv` |
+| `source/server.py`, `.env.example` | Local server: serves the app and forwards assistant questions to OpenRouter. The key stays in `.env` (ignored by git) and never reaches the browser |
 | `source/tests/` | `integration_test.py` (39 Sprint 3 checks), `ai_test.py` (28) and `acceptance_test.py` (37), with their result JSON |
 
 ## Build and test
@@ -50,7 +52,16 @@ pip install playwright && playwright install chromium
 python3 tests/integration_test.py     # 39 checks (Sprint 3 partner imports)
 python3 tests/ai_test.py              # 28 checks
 python3 tests/acceptance_test.py      # 37 checks
+python3 tests/llm_test.py             # 10 checks (AI model path, with a mocked API)
+python3 tests/server_test.py          # 11 checks (server; no network)
 ```
+
+## Run with the AI model (Inkling 2 Mini via OpenRouter)
+```
+cp .env.example .env                  # then paste your key after OPENROUTER_API_KEY=
+cd source && python3 build.py && python3 server.py
+```
+Open http://localhost:8000. The assistant page says "AI model: Inkling 2 Mini via OpenRouter" when the key works. Never commit `.env`.
 
 ## Add the P01–P03 team's FAQ answers
 ```
