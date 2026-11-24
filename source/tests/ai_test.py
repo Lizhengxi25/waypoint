@@ -26,7 +26,7 @@ async def main():
         side = await pg.inner_text(".side")
         check("UI", "App is branded Team P6/P7 (no Waypoint)", "Team P6/P7" in side and "Waypoint" not in (await pg.content()))
         navy = await pg.evaluate("getComputedStyle(document.querySelector('h1')).color")
-        check("UI", "Theme uses MBZUAI navy #154677", navy == "rgb(21, 70, 119)", navy)
+        check("UI", "Theme uses the shared Coop Platform navy #0C2840", navy == "rgb(12, 40, 64)", navy)
 
         # ---------- Assistant ----------
         await role("student"); await go("assistant")

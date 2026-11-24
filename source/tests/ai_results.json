@@ -7,9 +7,9 @@
  },
  {
   "ac": "UI",
-  "desc": "Theme uses MBZUAI navy #154677",
+  "desc": "Theme uses the shared Coop Platform navy #0C2840",
   "ok": true,
-  "detail": "rgb(21, 70, 119)"
+  "detail": "rgb(12, 40, 64)"
  },
  {
   "ac": "CB",

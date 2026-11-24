@@ -6,39 +6,41 @@
 <title>Team P6/P7 · Co-op preparation and progress</title>
 <meta name="description" content="Team P6/P7 classroom prototype for BUS2010 IPP projects P06 and P07: internship preparation, co-op learning progress, and Sprint 2 AI features (FAQ assistant and internship matching).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23154677'/%3E%3Cpath d='M16 7.5 24.5 16 16 24.5 7.5 16z' fill='%23E5C687'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Team P6/P7 — design tokens. MBZUAI colours: navy #154677, blue #006BA1, gold #E5C687. */
+/* Team P6/P7 — design tokens. Sprint 3: aligned with the shared Coop Platform look used by P04/P05 (navy #0C2840, blue #144673, gold #D9BA82, Inter). */
 :root {
-  --navy: #154677;
-  --blue: #006BA1;
-  --gold: #E5C687;
-  --navy-deep: #0F3861;
+  --navy: #0C2840;
+  --blue: #144673;
+  --gold: #D9BA82;
+  --navy-deep: #12355a;
   --gold-ink: #574A30;
   --gold-50: #FBF6EC;
-  --cream: #F5E6CE;
+  --cream: #F7EBDB;
 
-  --bg: #FFFFFF;
+  --bg: #F4F6F9;
   --paper: #FFFFFF;
   --fill: #F4F4F5;
-  --ink: #18181B;
+  --ink: #172434;
   --ink-2: #3F3F46;
-  --muted: #71717A;
+  --muted: #627285;
   --faint: #A1A1AA;
-  --line: #E4E4E7;
+  --line: #e3e8ef;
   --line-2: #F0F0F2;
 
-  --blue-50: #EAF3F8;
+  --blue-50: #eaf1f8;
   --navy-50: #EEF2F7;
-  --green: #1B7A43;  --green-50: #EAF6EF;
-  --red: #C42B1C;    --red-50: #FCEDEB;
+  --green: #17734a;  --green-50: #e3f4ea;
+  --red: #b42318;    --red-50: #fde8e6;
 
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --display: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  --r-sm: 6px; --r-md: 12px;
+  --r-sm: 9px; --r-md: 14px;
   --card: 0 0 0 1px var(--line);
-  --focus: 0 0 0 3px rgba(0, 107, 161, 0.28);
+  --focus: 0 0 0 3px rgba(20, 70, 115, 0.14);
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -64,7 +66,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- Shell ---------- */
-.app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+.app { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
 .side {
   background: var(--navy); padding: 22px 14px 18px;
   display: flex; flex-direction: column; gap: 26px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
@@ -406,6 +408,29 @@ h4.mini { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6p
   .msg { max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .toast, .btn, details.more > summary::after { transition: none; } }
+
+/* ---------- Sprint 3: shared Coop Platform look (matches the P04/P05 app) ---------- */
+body { font-size: 14.5px; letter-spacing: 0; }
+.side { background: linear-gradient(180deg, var(--navy) 0%, #0a2136 100%); color: #d7e1ec; }
+.brand { gap: 12px; padding: 4px 8px 6px; }
+.brand-logo { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg, var(--gold), #f0d8a8); color: var(--navy);
+  display: grid; place-items: center; font-weight: 800; font-size: 14px; flex: none; }
+.brand-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+.brand-sub { color: var(--gold); font-size: 11.5px; line-height: 1.35; }
+.nav-group h4 { font-family: var(--sans); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #7f96ad; }
+.nav-group a { border-radius: 10px; color: #c4d1e0; }
+.nav-group a[aria-current="page"] { background: rgba(217, 186, 130, .16); color: #fff; box-shadow: inset 0 0 0 1px rgba(217, 186, 130, .35); }
+.whoami label { font-family: var(--sans); text-transform: uppercase; letter-spacing: .1em; font-size: 10.5px; color: #7f96ad; }
+.main { padding: 20px 28px 56px; }
+.main > * { max-width: 1040px; }
+.demo-banner { background: #fff; color: var(--muted); padding: 9px 14px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 10px;
+  display: flex; gap: 8px; align-items: baseline; margin-bottom: 26px; }
+.demo-banner b { color: var(--navy); white-space: nowrap; }
+h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; color: var(--navy); }
+.eyebrow { font-family: var(--sans); text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--blue); }
+.panel { background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 1px 2px rgba(16, 32, 56, .05), 0 4px 14px rgba(16, 32, 56, .06); }
+.btn { border-radius: 10px; font-weight: 600; }
+.chip { border-radius: 999px; }
 
 </style>
 </head>
@@ -1628,8 +1653,8 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
     <div class="app">
       <aside class="side" aria-label="Navigation">
         <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="#E5C687" stroke-width="1.5"/><path d="M16 8 24 16 16 24 8 16z" fill="#E5C687"/></svg>
-          <div class="brand-name">Team P6/P7</div>
+          <div class="brand-logo" aria-hidden="true">IPP</div>
+          <div><div class="brand-name">Coop Platform</div><div class="brand-sub">P06 Preparation · P07 Co-op · Team P6/P7</div></div>
         </div>
         <nav>${navHTML}</nav>
         <div class="side-foot">
@@ -1643,7 +1668,7 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
           <button type="button" class="demo-link" data-action="open-settings">Demo · ${d(S.today)}</button>
         </div>
       </aside>
-      <main class="main" id="main" tabindex="-1">${content}</main>
+      <main class="main" id="main" tabindex="-1"><div class="demo-banner"><b>Demo only</b><span>Synthetic data · simulated role switching (no login) · the assistant answers only from approved sources · a match is not a placement.</span></div>${content}</main>
     </div>
     <div class="toast" role="status" aria-live="polite" id="toast"></div>
     ${settingsDialog()}

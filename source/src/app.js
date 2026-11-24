@@ -147,8 +147,8 @@
     <div class="app">
       <aside class="side" aria-label="Navigation">
         <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="#E5C687" stroke-width="1.5"/><path d="M16 8 24 16 16 24 8 16z" fill="#E5C687"/></svg>
-          <div class="brand-name">Team P6/P7</div>
+          <div class="brand-logo" aria-hidden="true">IPP</div>
+          <div><div class="brand-name">Coop Platform</div><div class="brand-sub">P06 Preparation · P07 Co-op · Team P6/P7</div></div>
         </div>
         <nav>${navHTML}</nav>
         <div class="side-foot">
@@ -162,7 +162,7 @@
           <button type="button" class="demo-link" data-action="open-settings">Demo · ${d(S.today)}</button>
         </div>
       </aside>
-      <main class="main" id="main" tabindex="-1">${content}</main>
+      <main class="main" id="main" tabindex="-1"><div class="demo-banner"><b>Demo only</b><span>Synthetic data · simulated role switching (no login) · the assistant answers only from approved sources · a match is not a placement.</span></div>${content}</main>
     </div>
     <div class="toast" role="status" aria-live="polite" id="toast"></div>
     ${settingsDialog()}
