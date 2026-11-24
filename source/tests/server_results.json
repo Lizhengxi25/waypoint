@@ -1,25 +1,25 @@
 [
  {
   "ac": "LLM-SRV",
-  "desc": "A grounded answer citing a given entry is kept",
+  "desc": "An answer citing a given entry is kept with its citation",
   "ok": true,
   "detail": ""
  },
  {
   "ac": "LLM-SRV",
-  "desc": "An answer citing an entry we did not send becomes a handoff",
+  "desc": "A general answer is kept; a citation we did not send is dropped",
   "ok": true,
   "detail": ""
  },
  {
   "ac": "LLM-SRV",
-  "desc": "An answer with no citation becomes a handoff",
+  "desc": "A reply that needs the coordinator keeps the answer and the flag",
   "ok": true,
   "detail": ""
  },
  {
   "ac": "LLM-SRV",
-  "desc": "Text that is not JSON becomes a handoff",
+  "desc": "Text that is not JSON goes to a person",
   "ok": true,
   "detail": ""
  },

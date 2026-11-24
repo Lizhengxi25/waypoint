@@ -33,45 +33,29 @@ def load_env(path=HERE.parent / ".env"):
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-SYSTEM = """You are the co-op assistant inside the IPP Coop Platform, a university classroom prototype.
-You help students with questions about internship matching, skill preparation (P06), placements and co-op learning progress (P07).
+SYSTEM = """You are the friendly co-op assistant inside the IPP Coop Platform, a university classroom prototype.
+Students ask you about internships, matching, preparing skills such as Jira, placements, their co-op log, or anything else. Be natural, warm and genuinely helpful, like a good student advisor in a chat.
 
-How to answer
-- Use the APPROVED ENTRIES below as your only source of facts. Each entry has an ID, the question it answers and the approved answer.
-- Be helpful. The student will rarely use the same words as an entry: match on meaning, not wording. If an entry answers the question, even partly, answer it.
-- You may combine several entries, reorder them and rephrase them in plain, friendly English. Speak to the student as "you". Keep it short: 2 to 5 sentences.
-- When it helps, end with one concrete next step taken from the entries (for example, which page to open).
-- If an entry covers only part of the question, answer that part and say that a co-op coordinator can help with the rest.
-
-What you must not do
-- Do not add facts the entries do not state: no policy, dates, numbers, pay, grades, visas or names of your own.
-- Do not approve placements, change records or discuss other students.
-- Set handoff to true ONLY when the student asks a real question and none of the entries is relevant. Then leave answer empty; a co-op coordinator will reply.
-
-Greetings and small talk
-- If the message is a greeting, thanks or small talk (for example "hi", "thanks", "who are you?"), set small_talk to true, handoff to false, faq_ids to [], and reply in one or two friendly sentences: say what you can help with (internship matching, preparing a skill such as Jira, placements, the co-op log) and invite a question. Give no facts in a small-talk reply.
-
-Output
-- answer: your reply to the student.
-- faq_ids: the IDs of every entry you used (only IDs from the list).
-- handoff: true or false, as above.
-- small_talk: true only for greetings and small talk.
-- reason: one short sentence on which entries you used, or why none fit."""
+- Answer every message. Greetings and small talk get a short friendly reply.
+- The APPROVED ENTRIES below are the programme's official answers. When one is relevant, base your answer on it, rephrase it naturally, and list its ID in faq_ids.
+- When no entry fits, still help from general knowledge (for example how to prepare for an interview, what Jira is, how to write a good log entry). Leave faq_ids empty.
+- Do not invent university-specific rules such as pay, GPA, credits, visas or deadlines. For those, give general guidance if useful, say the co-op coordinator will confirm, and set needs_coordinator to true.
+- Never approve placements or share information about other students.
+- Keep replies short: 1 to 5 sentences, plain English, speaking to the student as "you"."""
 
 SCHEMA = {
-    "name": "faq_reply",
+    "name": "assistant_reply",
     "strict": True,
     "schema": {
         "type": "object",
         "additionalProperties": False,
         "properties": {
-            "answer": {"type": "string", "description": "Answer to the student, or empty when handing off"},
+            "answer": {"type": "string"},
             "faq_ids": {"type": "array", "items": {"type": "string"}},
-            "handoff": {"type": "boolean"},
-            "small_talk": {"type": "boolean"},
-            "reason": {"type": "string", "description": "One short sentence: which entry answers it, or why none does"},
+            "needs_coordinator": {"type": "boolean"},
+            "reason": {"type": "string"},
         },
-        "required": ["answer", "faq_ids", "handoff", "small_talk", "reason"],
+        "required": ["answer", "faq_ids", "needs_coordinator", "reason"],
     },
 }
 
@@ -87,27 +71,22 @@ def build_messages(question, candidates):
 
 
 def validate_reply(raw, candidate_ids):
-    """Turn the model's text into a safe reply. Anything doubtful becomes a handoff."""
+    """Keep the model's reply; drop citations of entries we did not send. Only an empty reply goes to a person."""
     try:
         r = json.loads(raw)
     except (TypeError, ValueError):
-        return {"answer": "", "faq_ids": [], "handoff": True, "reason": "The model did not return valid JSON."}
-    ids = [i for i in r.get("faq_ids", []) if i in candidate_ids]
+        return {"answer": "", "faq_ids": [], "needs_coordinator": True, "reason": "The model did not return a readable reply."}
     answer = str(r.get("answer", "")).strip()
-    if r.get("small_talk") and answer and not r.get("handoff"):
-        return {"answer": answer[:400], "faq_ids": [], "handoff": False, "small_talk": True, "reason": str(r.get("reason", "")).strip()[:300]}
-    if r.get("handoff") or not ids or not answer:
-        why = str(r.get("reason", "")).strip() or "No approved entry answers this question."
-        if not r.get("handoff") and not ids:
-            why = "The model cited no approved entry, so the question goes to a person."
-        return {"answer": "", "faq_ids": [], "handoff": True, "reason": why[:300]}
-    return {"answer": answer[:1200], "faq_ids": ids, "handoff": False, "reason": str(r.get("reason", "")).strip()[:300]}
+    if not answer:
+        return {"answer": "", "faq_ids": [], "needs_coordinator": True, "reason": str(r.get("reason", "")).strip()[:300] or "Empty reply."}
+    ids = [i for i in r.get("faq_ids", []) if i in candidate_ids]
+    return {"answer": answer[:1500], "faq_ids": ids, "needs_coordinator": bool(r.get("needs_coordinator")), "reason": str(r.get("reason", "")).strip()[:300]}
 
 
 def ask_model(question, candidates, key, model, timeout=25):
     # Inkling 2 Mini reasons before it answers. Keep the reasoning short and leave room for the answer,
     # or the reasoning uses up every token and the reply comes back empty.
-    body = {"model": model, "messages": build_messages(question, candidates), "temperature": 0.2, "max_tokens": 2500,
+    body = {"model": model, "messages": build_messages(question, candidates), "temperature": 0.5, "max_tokens": 2500,
             "reasoning": {"effort": "low", "exclude": True},
             "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
     req = urllib.request.Request(OPENROUTER_URL, data=json.dumps(body).encode(), method="POST", headers={

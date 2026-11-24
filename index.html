@@ -2265,13 +2265,14 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
       const user = `<div class="msg user"><div class="bubble">${esc(m.q)}</div><div class="meta">${esc(m.by)} · ${d(m.at)}</div></div>`;
       let bot;
       if (m.res.kind === "chat") {
-        bot = `<div class="msg bot"><div class="bubble"><p>${esc(m.llm ? m.llm.text : "")}</p><div class="src">${m.llm && m.llm.model ? `${esc(modelName(m.llm.model))} (AI) · ` : ""}general reply, no policy information</div></div></div>`;
+        bot = `<div class="msg bot"><div class="bubble"><p>${esc(m.llm ? m.llm.text : "")}</p><div class="src">${m.llm && m.llm.model ? `${esc(modelName(m.llm.model))} (AI) · general answer, not from the approved FAQ` : "Assistant"}${m.llm && m.llm.handoffId ? ` · also sent to ${esc(PEOPLE.coordinator.name)} to confirm (${esc(m.llm.handoffId)})` : ""}</div>
+          <div class="btn-row" style="margin-top:8px">${m.flagged ? `<span class="small muted">Sent to a coordinator</span>` : `<button class="btn ghost sm" type="button" data-action="chat-flag" data-id="${m.id}">Not what you asked? Ask a person</button>`}</div></div></div>`;
       } else if (m.res.kind === "answer") {
         const f = faqById(m.res.faqId);
         const ai = m.llm && m.llm.text;
         const cited = ai ? m.llm.ids.map(faqById).filter(Boolean) : [];
         bot = `<div class="msg bot">${thoughtHTML(m)}<div class="bubble"><p>${esc(ai ? m.llm.text : f.a)}</p>
-          ${ai ? `<div class="src">Written by ${esc(modelName(m.llm.model))} (AI) from approved source${cited.length > 1 ? "s" : ""} · ${cited.map((c) => `${c.id} · ${esc(c.source)}`).join("; ")}</div>
+          ${ai ? `<div class="src">Written by ${esc(modelName(m.llm.model))} (AI) from approved source${cited.length > 1 ? "s" : ""} · ${cited.map((c) => `${c.id} · ${esc(c.source)}`).join("; ")}${m.llm.handoffId ? ` · also sent to ${esc(PEOPLE.coordinator.name)} to confirm (${esc(m.llm.handoffId)})` : ""}</div>
           <details class="thought" style="margin-top:6px"><summary>Check the approved text</summary>${cited.map((c) => `<p class="small" style="margin:6px 0"><span class="id">${c.id}</span> ${esc(c.a)}</p>`).join("")}</details>`
           : `<div class="src" title="Match score ${m.res.score.toFixed(2)}">Approved source · ${f.id} · ${esc(f.source)}${m.res.guard === "privacy" ? " · privacy rule" : ""}${m.llm && m.llm.error ? " · AI model unavailable, approved text shown" : ""}</div>`}
           <div class="btn-row" style="margin-top:8px">${f.link && !embed ? `<a class="btn secondary sm" href="${f.link}">Open page</a>` : ""}
@@ -2557,11 +2558,13 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
       .then((j) => {
         clearTimeout(timer); const by = pendingAsk.by; pendingAsk = null;
-        if (j.small_talk && String(j.answer || "").trim()) return finishAsk(q, { kind: "chat", score: res.score, ranked: res.ranked, reason: j.reason || "Greeting or small talk" }, Object.assign(base, { text: String(j.answer).trim(), ids: [] }), by);
+        const text = String(j.answer || "").trim();
+        if (!text) return finishAsk(q, res, Object.assign(base, { error: true }), by);
         const ids = (j.faq_ids || []).filter((id) => base.cands.includes(id) && faqById(id));
-        if (j.handoff || !ids.length || !String(j.answer || "").trim())
-          return finishAsk(q, { kind: "handoff", score: res.score, ranked: res.ranked, guard: "llm", reason: `${modelName(base.model)} found no approved entry that answers this. ${j.reason || ""}`.trim() }, base, by);
-        finishAsk(q, { kind: "answer", faq: faqById(ids[0]), score: res.score, ranked: res.ranked, reason: j.reason || `Answered from ${ids.join(", ")}` }, Object.assign(base, { text: String(j.answer).trim(), ids }), by);
+        const llm = Object.assign(base, { text, ids, coordinator: !!j.needs_coordinator });
+        let handoffId = null;
+        if (j.needs_coordinator) { handoffId = nextId("Q-", S.handoffQ); S.handoffQ.push({ id: handoffId, q, from: by, at: S.today, status: "open", reason: `${modelName(base.model)} asked the coordinator to confirm. ${j.reason || ""}`.trim() }); event(`Assistant asked the coordinator to confirm ${handoffId}`); llm.handoffId = handoffId; }
+        finishAsk(q, { kind: ids.length ? "answer" : "chat", faq: ids.length ? faqById(ids[0]) : null, score: res.score, ranked: res.ranked, reason: j.reason || "" }, llm, by);
       })
       .catch(() => { clearTimeout(timer); const by = pendingAsk ? pendingAsk.by : me().name; pendingAsk = null; finishAsk(q, res, Object.assign(base, { error: true }), by); });
   }
@@ -2570,7 +2573,7 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
   function askQuestion(q) {
     if (pendingAsk) return;
     const res = IPP_AI.answer(q, { selfId: "COOP-B001" });
-    if (LLM && res.guard !== "privacy" && res.guard !== "policy") return askLLM(q, res);
+    if (LLM && res.guard !== "privacy") return askLLM(q, res);
     if (GREETING.test(q)) return finishAsk(q, { kind: "chat", score: 0, ranked: res.ranked, reason: "Greeting" }, { text: `Hi ${PEOPLE.student.short}! Ask me about internship matching, preparing a skill such as Jira, your placement or your co-op log.` });
     finishAsk(q, res, null);
   }

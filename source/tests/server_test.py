@@ -8,19 +8,19 @@ def check(desc, ok, detail=""):
     R.append({"ac": "LLM-SRV", "desc": desc, "ok": bool(ok), "detail": detail}); print(("PASS" if ok else "FAIL"), desc, detail)
 
 C = {"FAQ-03", "FAQ-04"}
-v = server.validate_reply(json.dumps({"answer": "Open your plan.", "faq_ids": ["FAQ-03"], "handoff": False, "reason": "FAQ-03"}), C)
-check("A grounded answer citing a given entry is kept", not v["handoff"] and v["faq_ids"] == ["FAQ-03"])
-v = server.validate_reply(json.dumps({"answer": "You will be paid.", "faq_ids": ["FAQ-99"], "handoff": False, "reason": ""}), C)
-check("An answer citing an entry we did not send becomes a handoff", v["handoff"] and v["answer"] == "")
-v = server.validate_reply(json.dumps({"answer": "Something", "faq_ids": [], "handoff": False, "reason": ""}), C)
-check("An answer with no citation becomes a handoff", v["handoff"])
-check("Text that is not JSON becomes a handoff", server.validate_reply("Sure! Here is", C)["handoff"])
+v = server.validate_reply(json.dumps({"answer": "Open your plan.", "faq_ids": ["FAQ-03"], "needs_coordinator": False, "reason": "FAQ-03"}), C)
+check("An answer citing a given entry is kept with its citation", v["answer"] and v["faq_ids"] == ["FAQ-03"])
+v = server.validate_reply(json.dumps({"answer": "Practise out loud.", "faq_ids": ["FAQ-99"], "needs_coordinator": False, "reason": ""}), C)
+check("A general answer is kept; a citation we did not send is dropped", v["answer"] and v["faq_ids"] == [])
+v = server.validate_reply(json.dumps({"answer": "Pay depends on the offer; the coordinator will confirm.", "faq_ids": [], "needs_coordinator": True, "reason": ""}), C)
+check("A reply that needs the coordinator keeps the answer and the flag", v["answer"] and v["needs_coordinator"])
+check("Text that is not JSON goes to a person", server.validate_reply("Sure! Here is", C)["needs_coordinator"])
 msgs = server.build_messages("How do I learn Jira?", [{"id": "FAQ-03", "topic": "Preparation", "q": "Q", "a": "A", "source": "S"}])
 check("The prompt holds only the question and the approved entries", "[FAQ-03]" in msgs[1]["content"] and "COOP-B" not in json.dumps(msgs))
 
 # HTTP endpoints with a fake model
 calls = []
-server.ask_model = lambda q, c, key, model, timeout=25: calls.append((q, c)) or {"answer": "Open your plan.", "faq_ids": ["FAQ-03"], "handoff": False, "reason": "ok"}
+server.ask_model = lambda q, c, key, model, timeout=25: calls.append((q, c)) or {"answer": "Open your plan.", "faq_ids": ["FAQ-03"], "needs_coordinator": False, "reason": "ok"}
 httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler); port = httpd.server_address[1]
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 base = f"http://127.0.0.1:{port}"
