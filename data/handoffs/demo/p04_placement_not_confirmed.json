@@ -1,0 +1,9 @@
+{
+  "_about": "Demo file for the Sprint 3 review: an accepted offer still waiting for university confirmation. P04 never sends this; our import must refuse it. Synthetic data.",
+  "payload": {
+    "placement_id": "PL-0002", "status": "Awaiting university confirmation", "student_id": "COOP-B001", "opportunity_id": "OP-031",
+    "employer_name": "Desert Grid Energy (fictional)", "location": "Abu Dhabi", "role": "Energy Data Intern",
+    "period_start": "2027-02-01", "period_end": "2027-05-31", "supervisor_name": null, "supervisor_contact": null, "academic_advisor": null,
+    "application_id": "APP-0002", "confirmed_by": null, "confirmed_at": null, "opportunity_version": 1
+  }
+}

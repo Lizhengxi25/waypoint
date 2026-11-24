@@ -61,6 +61,17 @@ async def main():
         await pg.set_input_files("#imp-file-gaps", str(DATA / "p05_to_p06_skill_gaps.sample.json")); await pg.wait_for_timeout(300)
         s = await S(); check("S3-GAP", "P05 file can be uploaded as a file, not only pasted", len(s["gaps"]) == 1 and "p05_to_p06" in s["importLog"][-1]["from"])
 
+        # demo files used in the Sprint 3 review
+        await preset("fresh"); await role("coordinator"); await go("gaps")
+        await pg.set_input_files("#imp-file-gaps", str(DATA / "demo" / "p05_gaps_with_problems.json")); await pg.wait_for_timeout(300)
+        s = await S(); r = s["importLog"][-1]
+        check("S3-DEMO", "Demo file: 1 gap added, 3 refused (no module, old profile version, unknown student)", len(r["added"]) == 1 and len(r["rejected"]) == 3)
+        await go("placement")
+        await pg.set_input_files("#imp-file-placement", str(DATA / "demo" / "p04_placement_not_confirmed.json")); await pg.wait_for_timeout(300)
+        s = await S(); check("S3-DEMO", "Demo file: placement awaiting confirmation is refused", s["placement"] is None and "accepts only university_confirmed" in s["importLog"][-1]["rejected"][0]["why"])
+        await preset("fresh"); await role("coordinator"); await go("gaps")
+        await pg.set_input_files("#imp-file-gaps", str(DATA / "p05_to_p06_skill_gaps.sample.json")); await pg.wait_for_timeout(300)
+
         # ---------- P04 -> P07 placement ----------
         await go("placement")
         handoff_row = {"handoff_id": "H07-0001", "sent_at": "2026-12-14T10:00:05Z", "receipt_status": "mock-received", "payload": dict(PL, placement_id="PL-0009", status="Awaiting university confirmation")}

@@ -1,0 +1,9 @@
+{
+  "_about": "Demo file for the Sprint 3 review: one good P05 gap and three records our import must refuse. Synthetic data.",
+  "gaps": [
+    { "gap_id": "GAP-0001", "student_id": "COOP-B001", "skill_id": "SK-JIRA", "opportunity_id": "OP-028", "reason": "OP-028 requires Jira; not yet demonstrated", "recommendation_id": "REC-7F3A2C91", "opportunity_version": 2, "profile_version": 2 },
+    { "gap_id": "GAP-0002", "student_id": "COOP-B001", "skill_id": "SK-EXCEL", "opportunity_id": "OP-031", "reason": "OP-031 lists Excel as desirable", "recommendation_id": "REC-7F3A2C91", "opportunity_version": 1, "profile_version": 2 },
+    { "gap_id": "GAP-0003", "student_id": "COOP-B001", "skill_id": "SK-JIRA", "opportunity_id": "OP-028", "reason": "OP-028 requires Jira; not yet demonstrated", "recommendation_id": "REC-11AA0001", "opportunity_version": 2, "profile_version": 1 },
+    { "gap_id": "GAP-0004", "student_id": "COOP-B999", "skill_id": "SK-SQL", "opportunity_id": "OP-028", "reason": "OP-028 requires SQL", "recommendation_id": "REC-11AA0002", "opportunity_version": 2, "profile_version": 1 }
+  ]
+}

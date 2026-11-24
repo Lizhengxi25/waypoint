@@ -84,6 +84,18 @@
   "detail": ""
  },
  {
+  "ac": "S3-DEMO",
+  "desc": "Demo file: 1 gap added, 3 refused (no module, old profile version, unknown student)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-DEMO",
+  "desc": "Demo file: placement awaiting confirmation is refused",
+  "ok": true,
+  "detail": ""
+ },
+ {
   "ac": "S3-EXC",
   "desc": "Placement not university_confirmed is not accepted",
   "ok": true,
