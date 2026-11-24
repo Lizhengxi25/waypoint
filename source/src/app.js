@@ -961,7 +961,7 @@
 
   /* Demo animation: show the thinking steps one by one, then stream the answer word by word.
      Skipped for automated tests (navigator.webdriver) and for people who ask for reduced motion. */
-  const ANIMATE = !(navigator.webdriver || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches));
+  const ANIMATE = false; /* Answers appear at once; the "How I answered" steps stay available under each answer. */
   function playAnswer() {
     const a = ui.anim; a.started = true;
     const m = S.chat.find((x) => x.id === a.id), steps = thoughtSteps(m), t0 = performance.now();
