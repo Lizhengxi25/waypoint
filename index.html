@@ -2540,12 +2540,12 @@ if (typeof window !== "undefined") window.IPP_AI = IPP_AI;
     fetch("api/llm", { signal: ctl.signal }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.available) { LLM = { model: j.model }; render(); } }).catch(() => {});
   }
   function askLLM(q, res) {
-    const cands = IPP_AI.candidates(q, 4);
+    const cands = IPP_AI.candidates(q, 6);
     pendingAsk = { q, by: me().name, at: S.today }; ui.draft.ask = ""; render();
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000);
     const base = { model: LLM.model, cands: cands.map((f) => f.id) };
     fetch("api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ question: q, candidates: cands.map((f) => ({ id: f.id, topic: f.topic, q: f.q, a: f.a, source: f.source })) }) })
+      body: JSON.stringify({ question: q, candidates: cands.map((f) => ({ id: f.id, topic: f.topic, q: f.q, alts: (f.alts || []).join(" / "), a: f.a, source: f.source })) }) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
       .then((j) => {
         clearTimeout(timer); const by = pendingAsk.by; pendingAsk = null;

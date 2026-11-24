@@ -40,7 +40,7 @@ async def main():
         check("LLM", "Model answer is shown with the approved source it used", m["llm"]["ids"] == ["FAQ-03"] and "Written by Inkling 2 Mini (AI) from approved source" in t and "Open your preparation plan" in t)
         check("LLM", "Student can check the approved text behind the AI answer", "Check the approved text" in t)
         body = SENT[-1]
-        check("LLM", "Only the question and approved entries are sent (no student records)", set(body) == {"question", "candidates"} and all(set(c) == {"id", "topic", "q", "a", "source"} for c in body["candidates"]) and "COOP-B" not in json.dumps(body))
+        check("LLM", "Only the question and approved entries are sent (no student records)", set(body) == {"question", "candidates"} and all(set(c) == {"id", "topic", "q", "alts", "a", "source"} for c in body["candidates"]) and "COOP-B" not in json.dumps(body))
 
         n = len(SENT); await ask("Will I be paid during my internship?")
         s = await S(); check("LLM", "Policy question never reaches the model and goes to the coordinator", len(SENT) == n and s["chat"][-1]["res"]["kind"] == "handoff")
