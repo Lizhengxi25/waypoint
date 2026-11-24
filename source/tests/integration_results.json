@@ -1,0 +1,158 @@
+[
+ {
+  "ac": "S3-GAP",
+  "desc": "Invalid JSON is refused with a message",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-GAP",
+  "desc": "Gap in P05's v3 format (no gap_type) is imported with its versions",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Gap for a skill with no P06 module is not accepted, with the reason",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Gap with a missing field is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Gap for a student P06 does not hold is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-GAP",
+  "desc": "Gap row shows recommendation, opportunity version and profile version",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Same gap sent twice is skipped, not duplicated",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-GAP",
+  "desc": "Imported gap appears on Layla's plan, linked to the Jira module",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-GAP",
+  "desc": "P05 file can be uploaded as a file, not only pasted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Placement not university_confirmed is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Placement whose period ends before it starts is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-PL",
+  "desc": "P04 placement in the v3 format is received (PL-0001, role, supervisor_name/contact, application, version)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-PL",
+  "desc": "Period 1 follows the placement: 1 Feb to 31 May 2027",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Placement without academic_advisor is accepted and flagged for the coordinator",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-PL",
+  "desc": "Supervisor contact is shown to the coordinator",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Same placement sent again is skipped (P04 sends each once)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "A second, different placement for Layla is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-PL",
+  "desc": "Supervisor contact is not shown to the student",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Learning agreement shows the advisor is missing",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-PL",
+  "desc": "Coordinator assigns the advisor; who and when are recorded",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-REC",
+  "desc": "Handoffs page keeps an import log with reasons",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-OWN",
+  "desc": "Matching page says matching is owned by P04/P05",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-FAQ",
+  "desc": "Partner FAQ file is loaded into the assistant's knowledge base",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-DATA",
+  "desc": "'midpoint' scenario uses the P04 period (1 Feb to 31 May 2027)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-DATA",
+  "desc": "'end' scenario uses the P04 period (1 Feb to 31 May 2027)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "X",
+  "desc": "No JavaScript errors during the run",
+  "ok": true,
+  "detail": ""
+ }
+]

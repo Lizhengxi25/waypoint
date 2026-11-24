@@ -1,9 +1,7 @@
 {
-  "_about": "P05 -> P06 skill gaps. Format proposed by S2 Team 3 (P04/P05) on 10 Nov 2026; P05 creates gap_id. Synthetic data. Team P6/P7 imports this in 'Skill gaps > Import from P05'.",
+  "_about": "P05 -> P06 skill gap, in the P04/P05 data dictionary v3 format (skill_gap_handoffs.p06_payload, 24 Nov 2026). P05 creates gap_id. Layla's P01 profile v2 has SQL reviewed and Jira self-declared, and OP-028 v2 requires SQL and Jira, so P05 lists one gap. Synthetic data. Import it in Skill gaps > Import a file from P05.",
   "gaps": [
-    { "gap_id": "GAP-001", "student_id": "COOP-B001", "skill_id": "SK-JIRA", "opportunity_id": "OP-028", "opportunity_version": 2,
-      "recommendation_id": "REC-7F3A2C91", "profile_version": 1, "gap_type": "required", "reason": "OP-028 requires Jira; not yet demonstrated" },
-    { "gap_id": "GAP-002", "student_id": "COOP-B001", "skill_id": "SK-SQL", "opportunity_id": "OP-028", "opportunity_version": 2,
-      "recommendation_id": "REC-7F3A2C91", "profile_version": 1, "gap_type": "desirable", "reason": "OP-028 lists SQL as desirable; self-declared only" }
+    { "gap_id": "GAP-0001", "student_id": "COOP-B001", "skill_id": "SK-JIRA", "opportunity_id": "OP-028", "reason": "OP-028 requires Jira; not yet demonstrated",
+      "recommendation_id": "REC-7F3A2C91", "opportunity_version": 2, "profile_version": 2 }
   ]
 }

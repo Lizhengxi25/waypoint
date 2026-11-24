@@ -1,7 +1,7 @@
 [
  {
   "ac": "P06-X",
-  "desc": "P05 gaps imported",
+  "desc": "P05 gap imported (data dictionary v3 sample, GAP-0001)",
   "ok": true,
   "detail": ""
  },
@@ -109,13 +109,25 @@
  },
  {
   "ac": "P07-X",
-  "desc": "Confirmed placement PL-028 received from P04 fixture",
+  "desc": "Confirmed placement PL-0001 received in the P04 v3 format",
   "ok": true,
   "detail": ""
  },
  {
   "ac": "P07-EXC",
   "desc": "Goal without a mapped outcome is rejected",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-EXC",
+  "desc": "Advisor cannot agree while no academic advisor is assigned",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "P07-X",
+  "desc": "Coordinator assigns the academic advisor",
   "ok": true,
   "detail": ""
  },

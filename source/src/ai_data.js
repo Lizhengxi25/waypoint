@@ -104,14 +104,14 @@ const SKILL_TAXONOMY = [
   { id: "SK-JIRA",  name: "Jira work tracking",       terms: ["jira", "jira software", "atlassian jira", "work tracking in jira"], agreed: true },
   { id: "SK-SQL",   name: "SQL",                      terms: ["sql", "sql for analytics", "mysql", "postgresql", "postgres", "sql server", "t-sql"], agreed: true },
   { id: "SK-VIZ",   name: "Data visualisation",       terms: ["data visualisation", "data visualization", "tableau", "power bi", "powerbi", "dashboards", "dashboard design"], agreed: true },
-  { id: "SK-PY",    name: "Python",                   terms: ["python", "python programming", "python 3", "pandas"], agreed: false },
-  { id: "SK-EXCEL", name: "Spreadsheets",             terms: ["excel", "microsoft excel", "spreadsheets", "google sheets"], agreed: false },
-  { id: "SK-COMM",  name: "Communication and presenting", terms: ["communication", "presenting", "presentation", "public speaking", "stakeholder communication"], agreed: false },
+  { id: "SK-PY",    name: "Python",                   terms: ["python", "python programming", "python 3", "pandas"], agreed: true },
+  { id: "SK-EXCEL", name: "Spreadsheets",             terms: ["excel", "microsoft excel", "spreadsheets", "google sheets"], agreed: true },
+  { id: "SK-COMM",  name: "Communication and presenting", terms: ["communication", "presenting", "presentation", "public speaking", "stakeholder communication"], agreed: true },
   { id: "SK-UX",    name: "User research",            terms: ["user research", "ux research", "usability testing", "customer interviews"], agreed: false },
   { id: "SK-STATS", name: "Statistics",               terms: ["statistics", "statistical analysis", "regression", "r programming"], agreed: false },
   { id: "SK-FIN",   name: "Financial modelling",      terms: ["financial modelling", "financial modeling", "valuation", "dcf"], agreed: false },
-  { id: "SK-DESIGN", name: "UI design and prototyping", terms: ["figma", "ui design", "prototyping", "wireframing"], agreed: false },
-  { id: "SK-DMKT",  name: "Digital marketing",        terms: ["digital marketing", "seo", "social media marketing"], agreed: false }
+  { id: "SK-FIGMA", name: "Figma (UI design and prototyping)", terms: ["figma", "ui design", "prototyping", "wireframing"], agreed: true },
+  { id: "SK-DMKT",  name: "Digital marketing",        terms: ["digital marketing", "seo", "social media marketing"], agreed: true }
 ];
 
 /* ---------- Synthetic student profiles (P01-shaped) ---------- */
@@ -233,6 +233,6 @@ const AI_FAILURE_LOG = [
     what: "Three paraphrases had an approved answer but scored below the threshold: “How do I get better at Jira?”, “What does the reviewer look for…”, “Why did you recommend Etihad…”.",
     fix: "Added two paraphrases to FAQ-03 and FAQ-05. Words that appear in no approved entry (e.g. employer names) now count at a capped weight. Employer-specific questions still go to the coordinator by design." },
   { id: "F-04", found: "2026-11-17", severity: "Medium: matching limitation", version: "v0.2",
-    what: "Skills outside the shared vocabulary are ignored: Daniel’s Git and Trello add nothing to his score (Mei’s Figma was in the same position until SK-DESIGN was proposed).",
+    what: "Skills outside the shared vocabulary are ignored: Daniel’s Git and Trello add nothing to his score (Mei’s Figma was in the same position until SK-FIGMA was added (P04/P05 data dictionary v3)).",
     fix: "Unrecognised skills are listed on every result for the coordinator. Added proposed IDs for the skills P05 asked about (Python, Excel, Figma, Communication, Digital marketing). SoS action: agree the vocabulary with P01 and P05 before Sprint 3." }
 ];

@@ -1,11 +1,10 @@
 {
-  "_about": "P04 -> P07 confirmed placement, in the format proposed by S2 Team 3 on 10 Nov 2026 (P04 builds this in Sprint 3). Open questions: placement ID format (PL-0001 suggested) and who sets academic_advisor. Synthetic data.",
-  "placement": {
-    "placement_id": "PL-0001", "application_id": "APP-0001", "student_id": "COOP-B001",
-    "opportunity_id": "OP-028", "opportunity_version": 2,
-    "employer_name": "Emirates Group", "location": "Dubai", "role_title": "Aviation Analytics Intern",
+  "_about": "P04 -> P07 confirmed placement, in the P04/P05 data dictionary v3 format (p07_handoffs.payload, 24 Nov 2026). P04 sends only university_confirmed placements, once each. academic_advisor is null because P04 does not hold it; the coordinator assigns it in P07. Supervisor details come from the P03 listing. Synthetic data. Import it in Placement > Import a file from P04.",
+  "payload": {
+    "placement_id": "PL-0001", "status": "university_confirmed", "student_id": "COOP-B001", "opportunity_id": "OP-028",
+    "employer_name": "Emirates Group", "location": "Dubai", "role": "Aviation Analytics Intern",
     "period_start": "2027-02-01", "period_end": "2027-05-31",
-    "supervisor": "TBC (from P03 listing)", "academic_advisor": "TBC",
-    "status": "university_confirmed", "confirmed_by": "coordinator", "confirmed_at": "2027-01-20T10:00:00Z"
+    "supervisor_name": "R. Khan (synthetic)", "supervisor_contact": "supervisor.op028@example.com", "academic_advisor": null,
+    "application_id": "APP-0001", "confirmed_by": "Sara Al Hammadi", "confirmed_at": "2026-12-14T10:00:00Z", "opportunity_version": 2
   }
 }

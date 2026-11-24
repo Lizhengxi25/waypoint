@@ -16,7 +16,7 @@ async def main():
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(URL); await pg.evaluate("localStorage.clear()"); await pg.goto(URL)
         await pg.click("[data-action=open-settings]"); await pg.click("[data-preset=fresh]")
-        S = lambda: pg.evaluate("JSON.parse(localStorage.getItem('teamp6p7.records.v4'))")
+        S = lambda: pg.evaluate("JSON.parse(localStorage.getItem('teamp6p7.records.v5'))")
         async def role(r): await pg.select_option("#role", r); await pg.wait_for_timeout(80)
         async def go(h): await pg.evaluate(f"location.hash='#/{h}'"); await pg.wait_for_timeout(150)
         async def text(): return await pg.inner_text("#main")

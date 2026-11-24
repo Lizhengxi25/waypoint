@@ -1,8 +1,9 @@
-/* Team P6/P7 — Co-op preparation (P06), progress (P07) and Sprint 2 AI features. Vanilla JS, no build step required. */
+/* Team P6/P7 — Co-op preparation (P06), progress (P07), Sprint 2 AI features and Sprint 3 partner imports. Vanilla JS, no build step required. */
 (function () {
   "use strict";
 
-  const STORE_KEY = "teamp6p7.records.v4";
+  const STORE_KEY = "teamp6p7.records.v5";
+  const DEFAULTS = { start: PERIOD.start, end: PERIOD.end, sup: PEOPLE.supervisor.name };
   let S = load();
   let ui = { open: {}, errors: {}, draft: {} };
 
@@ -10,7 +11,7 @@
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) { const s = JSON.parse(raw); if (s && s.version === 3) return ensureAI(s); }
+      if (raw) { const s = JSON.parse(raw); if (s && s.version === 4) return ensureAI(s); }
     } catch (e) { /* storage unavailable: fall back to memory */ }
     return ensureAI(PRESETS.midpoint.make());
   }
@@ -354,11 +355,12 @@
   function pageGaps() {
     const err = ui.errors.gap;
     return head("Skill gaps", "Gaps come from matching (P05) or from the coordinator.",
-      can("coordinator") ? `<button class="btn" type="button" data-action="import-gaps">Import gaps from P05</button>` : "") +
+      can("coordinator") ? `<button class="btn secondary" type="button" data-action="import-gaps">Load P05 sample (GAP-0001)</button>` : "") +
       `<div class="layout"><div class="stack">
         <section class="panel">${S.gaps.length ? `<div class="panel-body" style="padding-top:20px"><table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
-          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div></td><td>${g.source === "P05" ? 'P05' : g.source === "match" ? 'Matching' : 'Manual'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
-          </tbody></table></div>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the synthetic P05 output or enter a gap by hand.</p></div>`}</section>
+          ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div>${g.recommendationId ? `<div class="small muted id">${esc(g.recommendationId)} · ${esc(g.opportunityId)} v${esc(g.opportunityVersion)} · profile v${esc(g.profileVersion)}</div>` : ""}</td><td>${g.source === "P05" ? 'P05' : g.source === "match" ? 'Matching' : 'Manual'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
+          </tbody></table></div>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the file from P05 or enter a gap by hand.</p></div>`}</section>
+        ${can("coordinator") ? importPanel("gaps") : ""}
         ${can("coordinator") ? `<section class="panel"><div class="panel-head"><h2>Add a gap</h2></div><div class="panel-body">
           ${`<form data-form="manual-gap"><div class="grid-2">
             <div class="field"><label for="g-skill">Skill</label><select class="input" id="g-skill" name="skill">${SKILLS.map((k) => `<option value="${k.id}">${esc(k.name)}</option>`).join("")}</select></div>
@@ -367,6 +369,84 @@
             <button class="btn secondary" type="submit">Add gap for Layla</button></form>`}
         </div></section>` : ""}
       </div>${rail("History", S.events.filter((e) => /gap/i.test(e.text)).slice(-6).reverse().map((e) => ({ at: e.at, who: e.actor, text: e.text.replace(/^./, (c) => c.toLowerCase()) })))}</div>`;
+  }
+
+  /* ================= Sprint 3: partner imports =================
+     P04/P05 export JSON in their data dictionary v3 format. We read their records as they are and check each one. */
+  function partnerRecords(text) {
+    let data; try { data = JSON.parse(text); } catch (e) { return { error: "This is not valid JSON. Paste the file exactly as it was sent." }; }
+    const out = [];
+    const walk = (x) => {
+      if (Array.isArray(x)) return x.forEach(walk);
+      if (!x || typeof x !== "object") return;
+      if (x.p06_payload && typeof x.p06_payload === "object") return walk(x.p06_payload);
+      if (x.payload && typeof x.payload === "object") return walk(x.payload);
+      for (const k of ["gaps", "records", "handoffs", "placements", "skill_gap_handoffs", "p07_handoffs"]) if (Array.isArray(x[k])) return walk(x[k]);
+      if (x.placement && typeof x.placement === "object") return walk(x.placement);
+      out.push(x);
+    };
+    walk(data);
+    return out.length ? { records: out } : { error: "No records found in this JSON." };
+  }
+  const missingFields = (r, fields) => fields.filter((k) => r[k] === undefined || r[k] === null || r[k] === "");
+  function importGaps(records, from) {
+    const res = { kind: "gaps", from, at: S.today, added: [], skipped: [], rejected: [] };
+    records.forEach((r) => {
+      const id = r.gap_id || "(no gap_id)";
+      const miss = missingFields(r, ["gap_id", "student_id", "skill_id", "opportunity_id", "reason"]);
+      if (miss.length) return res.rejected.push({ id, why: `Missing ${miss.join(", ")}` });
+      if (!P06_STUDENTS.includes(r.student_id)) return res.rejected.push({ id, why: `${r.student_id} has no P06 record in this demo (only Layla, COOP-B001)` });
+      if (!skillOf(r.skill_id)) return res.rejected.push({ id, why: `No P06 module for ${r.skill_id} yet (P06 has ${SKILLS.map((k) => k.id).join(", ")}). The coordinator follows up by hand.` });
+      if (S.gaps.some((x) => x.id === r.gap_id)) return res.skipped.push({ id, why: "Already imported" });
+      const open = S.gaps.find((x) => x.skillId === r.skill_id && x.status === "open");
+      if (open) return res.skipped.push({ id, why: `Layla already has an open gap for ${skillOf(r.skill_id).name} (${open.id})` });
+      S.gaps.push({ id: r.gap_id, studentId: r.student_id, skillId: r.skill_id, opportunityId: r.opportunity_id, opportunityVersion: r.opportunity_version ?? null, recommendationId: r.recommendation_id ?? null, profileVersion: r.profile_version ?? null, gapType: r.gap_type || null, source: "P05", reason: r.reason, createdAt: S.today, status: "open" });
+      res.added.push({ id, why: `${skillOf(r.skill_id).name} for ${r.opportunity_id}` });
+    });
+    finishImport(res, "skill gap", "P05");
+  }
+  function importPlacements(records, from) {
+    const res = { kind: "placement", from, at: S.today, added: [], skipped: [], rejected: [] };
+    const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+    records.forEach((r) => {
+      const id = r.placement_id || "(no placement_id)";
+      const miss = missingFields(r, ["placement_id", "status", "student_id", "opportunity_id", "employer_name", "period_start", "period_end"]);
+      if (miss.length) return res.rejected.push({ id, why: `Missing ${miss.join(", ")}` });
+      if (r.status !== "university_confirmed") { S.placementAttempts.push({ placementId: id, status: r.status, at: S.today }); return res.rejected.push({ id, why: `Status is “${r.status}”. P07 accepts only university_confirmed placements.` }); }
+      if (!P06_STUDENTS.includes(r.student_id)) return res.rejected.push({ id, why: `${r.student_id} has no P07 record in this demo (only Layla, COOP-B001)` });
+      if (!isDate(r.period_start) || !isDate(r.period_end) || r.period_end <= r.period_start) return res.rejected.push({ id, why: `Period ${r.period_start} to ${r.period_end} is not a valid date range` });
+      if (S.placement && S.placement.placementId === r.placement_id) return res.skipped.push({ id, why: "Already received. P04 sends each placement once." });
+      if (S.placement) return res.rejected.push({ id, why: `Layla already has an active placement (${S.placement.placementId})` });
+      S.placement = placementFromP04(r, S.today);
+      res.added.push({ id, why: `${r.employer_name}, ${r.period_start} to ${r.period_end}${S.placement.advisor ? "" : ". No academic advisor yet: the coordinator assigns one."}` });
+    });
+    finishImport(res, "placement", "P04");
+  }
+  function finishImport(res, noun, team) {
+    S.importLog.push(res); ui.importResult = res; ui.errors["imp-" + res.kind] = null;
+    res.added.forEach((x) => event(noun === "placement" ? `Received confirmed placement ${x.id} from P04` : `Imported skill gap ${x.id} from P05`));
+    res.rejected.forEach((x) => event(`${team} ${noun} ${x.id} not accepted: ${x.why}`));
+    if (noun === "placement" && res.added.length && S.placement && !S.placement.advisor) event(`Placement ${S.placement.placementId} arrived without an academic advisor`);
+    const parts = [res.added.length && `${res.added.length} added`, res.skipped.length && `${res.skipped.length} skipped`, res.rejected.length && `${res.rejected.length} not accepted`].filter(Boolean);
+    commit(`${team} file: ${parts.join(", ") || "nothing to import"}`);
+  }
+  function runImport(kind, text, from) {
+    const p = partnerRecords(text);
+    if (p.error) { ui.errors["imp-" + kind] = p.error; return render(); }
+    (kind === "gaps" ? importGaps : importPlacements)(p.records, from);
+  }
+  function importPanel(kind) {
+    const team = kind === "gaps" ? "P05" : "P04", r = ui.importResult && ui.importResult.kind === kind ? ui.importResult : null, err = ui.errors["imp-" + kind];
+    const list = (title, items) => items.length ? `<p class="small" style="margin:10px 0 4px"><strong>${title}</strong></p><ul class="small" style="margin:0;padding-left:18px">${items.map((x) => `<li><span class="id">${esc(x.id)}</span> ${esc(x.why)}</li>`).join("")}</ul>` : "";
+    return `<section class="panel"><div class="panel-head"><h2>Import a file from ${team}</h2></div><div class="panel-body">
+      <p class="small muted" style="margin-top:0">Upload or paste the JSON that ${team} exports (P04/P05 data dictionary v3). Each record is checked before it is saved. There is no live connection between the apps: this is a file handoff.</p>
+      <form data-form="import" data-kind="${kind}">
+        <div class="field"><label for="imp-file-${kind}">JSON file</label><input class="input" type="file" id="imp-file-${kind}" accept=".json,application/json" data-change="import-file" data-kind="${kind}"></div>
+        <div class="field ${err ? "error" : ""}"><label for="imp-text-${kind}">Or paste the JSON</label><textarea class="input" id="imp-text-${kind}" name="json" style="min-height:90px;font-family:var(--mono);font-size:12px"></textarea>${err ? `<span class="err">${esc(err)}</span>` : ""}</div>
+        <div class="btn-row"><button class="btn secondary" type="submit">Check and import</button></div>
+      </form>
+      ${r ? `<div style="margin-top:14px;border-top:1px solid var(--line-2);padding-top:10px" id="imp-result-${kind}"><p class="small muted" style="margin:0">Last import, ${d(r.at)} (${esc(r.from)})</p>${list("Added", r.added)}${list("Skipped", r.skipped)}${list("Not accepted", r.rejected)}</div>` : ""}
+    </div></section>`;
   }
 
   /* ================= P07 pages ================= */
@@ -380,12 +460,15 @@
     const blocked = S.placementAttempts.at(-1);
     return head("Placement", "The co-op record starts once the university confirms the placement.") +
       `<div class="layout"><div class="stack">
-      ${blocked && !p ? notice("warn", `<strong>${esc(blocked.placementId)} was not accepted.</strong> Its status is “offer accepted, awaiting university confirmation”. P07 records start only after a coordinator confirms the placement in P04.`) : ""}
+      ${blocked && !p ? notice("warn", `<strong>${esc(blocked.placementId)} was not accepted.</strong> Its status is “${esc(blocked.status || "awaiting university confirmation")}”. P07 records start only after a coordinator confirms the placement in P04.`) : ""}
+      ${p && !p.advisor ? notice("warn", `<strong>No academic advisor yet.</strong> P04 does not hold the advisor, so the coordinator assigns one here. The learning agreement cannot be agreed until then.`) : ""}
       <section class="panel"><div class="panel-head"><h2>${p ? esc(p.employer) + ", " + esc(p.location) : "Waiting for P04"}</h2>${p ? chip("ok", "University confirmed") : chip("none", "No placement")}</div><div class="panel-body">
-        ${p ? `<dl class="kv"><dt>Role</dt><dd>${esc(p.role)}</dd><dt>Period</dt><dd>${d(p.periodStart)} to ${d(p.periodEnd)}</dd><dt>Supervisor</dt><dd>${esc(p.supervisor)}</dd><dt>Academic advisor</dt><dd>${esc(p.advisor)}</dd><dt>Confirmed by</dt><dd>${esc(p.confirmedBy)}, ${d(p.confirmedAt)}</dd></dl>`
-          : `<p class="muted">Receive the synthetic placement record from P04 to start the co-op record.</p>
-            ${can("coordinator") ? `<div class="btn-row"><button class="btn" type="button" data-action="placement-ok">Receive confirmed placement PL-028</button><button class="btn secondary" type="button" data-action="placement-bad">Try offer awaiting confirmation</button></div>` : locked("coordinator", "receive placements")}`}
+        ${p ? `<dl class="kv"><dt>Placement</dt><dd><span class="id">${esc(p.placementId)}</span>${p.applicationId ? ` · ${esc(p.applicationId)}` : ""} · ${esc(p.opportunityId)}${p.opportunityVersion != null ? " v" + esc(p.opportunityVersion) : ""}</dd><dt>Role</dt><dd>${esc(p.role)}</dd><dt>Period</dt><dd>${d(p.periodStart)} to ${d(p.periodEnd)}</dd><dt>Supervisor</dt><dd>${esc(p.supervisor || "Not given")}${p.supervisorContact && can("coordinator", "advisor", "supervisor") ? `<div class="small muted">${esc(p.supervisorContact)}</div>` : ""}</dd><dt>Academic advisor</dt><dd>${p.advisor ? `${esc(p.advisor)}${p.advisorAssignedBy ? `<div class="small muted">Assigned by ${esc(p.advisorAssignedBy)}, ${d(p.advisorAssignedAt)}</div>` : ""}` : chip("warn", "Not assigned")}</dd><dt>Confirmed by</dt><dd>${esc(p.confirmedBy)}, ${d(p.confirmedAt)}</dd><dt>Received</dt><dd>From ${esc(p.source || "P04")}, ${d(p.receivedAt)}</dd></dl>
+            ${!p.advisor ? (can("coordinator") ? `<form data-form="assign-advisor" class="btn-row" style="margin-top:12px"><label class="sr-only" for="adv">Academic advisor</label><select class="input" id="adv" name="advisor" style="max-width:260px">${ADVISORS.map((a) => `<option value="${esc(a.name)}">${esc(a.name)} (${a.id})</option>`).join("")}</select><button class="btn" type="submit">Assign advisor</button></form>` : locked("coordinator", "assign the academic advisor")) : ""}`
+          : `<p class="muted">The co-op record starts when P04 sends a university-confirmed placement. Import P04's file below, or load the sample.</p>
+            ${can("coordinator") ? `<div class="btn-row"><button class="btn secondary" type="button" data-action="placement-ok">Load P04 sample (PL-0001)</button><button class="btn ghost" type="button" data-action="placement-bad">Guard test: not yet confirmed</button></div>` : locked("coordinator", "receive placements")}`}
       </div></section>
+      ${can("coordinator") ? importPanel("placement") : ""}
       <section class="panel"><div class="panel-head"><h2>Skills demonstrated before the placement</h2></div><div class="panel-body">
         ${readiness ? `<div class="ev-list" style="margin-top:0">${readiness.payload.demonstrated.map((x) => `<span class="ev">${x.evidenceId} ${esc(skillOf(x.skillId).name)}</span>`).join("")}</div>${readiness.payload.inProgress.length ? `<p class="small muted" style="margin-top:10px">Still in progress: ${readiness.payload.inProgress.map((k) => esc(skillOf(k).name)).join(", ")}.</p>` : ""}`
           : `<p class="muted" style="margin:0">No readiness summary yet. It is sent from P06 when a reviewer records a demonstrated skill.</p>`}
@@ -396,9 +479,11 @@
   function pageAgreement() {
     if (!S.placement) return needPlacement("Learning agreement");
     const a = S.agreement, agreed = a.status === "agreed", err = ui.errors.goal;
-    const sign = (k) => a.signoffs[k] ? chip("ok", `Agreed ${d(a.signoffs[k])}`) : (can(k) && a.goals.length === 3 && !agreed ? `<button class="btn sm" type="button" data-action="sign" data-who="${k}">Agree as ${esc(PEOPLE[k].short)}</button>` : chip("none", "Not yet agreed"));
+    const noAdv = !S.placement.advisor;
+    const sign = (k) => a.signoffs[k] ? chip("ok", `Agreed ${d(a.signoffs[k])}`) : (k === "advisor" && noAdv) ? chip("warn", "Advisor not assigned") : (can(k) && a.goals.length === 3 && !agreed ? `<button class="btn sm" type="button" data-action="sign" data-who="${k}">Agree as ${esc(PEOPLE[k].short)}</button>` : chip("none", "Not yet agreed"));
     return head("Learning agreement", `Three goals for ${esc(PERIOD.label)}, agreed by Layla, her supervisor and her advisor.`, agreed ? chip("ok", "Agreed") : chip("wait", `Draft, ${a.goals.length} of 3 goals`)) +
       `<div class="layout"><div class="stack">
+      ${noAdv ? notice("warn", `<strong>No academic advisor is assigned to ${esc(S.placement.placementId)} yet.</strong> The advisor must agree the learning agreement. ${can("coordinator") ? '<a href="#/placement">Assign one on the Placement page</a>.' : "The coordinator assigns one on the Placement page."}`) : ""}
       <section class="panel divided">${a.goals.length ? a.goals.map((g, i) => `<div class="skill"><div class="skill-top" style="margin-bottom:0"><div><div class="small muted" style="margin-bottom:2px">${g.id}</div><h3>${esc(g.text)}</h3></div>${!agreed && can("student") ? `<button class="btn ghost sm" type="button" data-action="remove-goal" data-id="${g.id}">Remove</button>` : ""}</div>
         <div class="ev-list">${g.outcomes.map((o) => `<span class="chip info">${esc(OUTCOMES.find((x) => x.id === o).name)}</span>`).join("")}</div></div>`).join("")
         : `<div class="empty"><h3>No goals yet</h3><p class="muted">Layla drafts three goals; her supervisor and advisor then agree them.</p></div>`}</section>
@@ -528,7 +613,7 @@
       (!open ? nextStrip({ cls: "", html: `<strong>The final review opens at the end of ${esc(PERIOD.label)}</strong> on ${d(PERIOD.end)}.` }) : "") +
       `<div class="layout single"><div class="stack">
       <div class="two-col">
-        <section class="voice employer" aria-labelledby="v-emp"><h3 id="v-emp">Employer feedback</h3><div class="who">${esc(PEOPLE.supervisor.name)} · Emirates Group</div>${empHTML}</section>
+        <section class="voice employer" aria-labelledby="v-emp"><h3 id="v-emp">Employer feedback</h3><div class="who">${esc(PEOPLE.supervisor.name)} · ${esc(S.placement.employer)}</div>${empHTML}</section>
         <section class="voice" aria-labelledby="v-adv"><h3 id="v-adv">Academic judgement</h3><div class="who">${esc(PEOPLE.advisor.name)} · not an official grade</div>${advHTML}</section>
       </div>
       ${later.length ? `<section class="panel"><div class="panel-head"><h2>Evidence outside this period</h2></div><div class="panel-body"><p class="small muted">Dated after ${d(PERIOD.end)}. Not counted towards ${esc(PERIOD.label)} and not shown as achieved.</p><div class="ev-list">${later.map((e) => `<span class="ev excluded" title="${esc(e.title)}">${e.id} ${esc(e.title)}, ${d(e.date)}</span>`).join("")}</div></div></section>` : ""}
@@ -553,14 +638,14 @@
   /* ================= Records ================= */
   function pageRecords() {
     const ifaces = [
-      ["P05 → P06", "Skill gap", "gap_id, student_id, skill_id, opportunity_id, opportunity_version, recommendation_id, profile_version, gap_type, reason", "Fixture (P05’s proposed format, 10 Nov)", "P05 creates gap_id; imported once per open skill"],
+      ["P05 → P06", "Skill gap", "gap_id, student_id, skill_id, opportunity_id, reason, recommendation_id, opportunity_version, profile_version (gap_type optional)", "File import (P04/P05 data dictionary v3)", "P05 creates gap_id. Checked on import: required fields, known student, a P06 module for the skill, no duplicate"],
       ["P06 → P01", "Reviewed skill evidence", "student_id, skill_id, evidence_id, outcome, reviewer, review_date", "Fixture endpoint (joint test with P01 in Sprint 2)", "Sent on every review decision; outcome = demonstrated, needs_more_evidence or not_demonstrated; P01 marks reviewed only on demonstrated"],
       ["P06 → P07", "Readiness summary", "studentId, demonstrated[], inProgress[]", "Working (same team)", "Sent with each demonstrated decision"],
-      ["P04 → P07", "Confirmed placement", "placementId, studentId, employer, period, supervisor, advisor, status. P04 proposed for Sprint 3: placement_id (PL-0001), application_id, opportunity_version, employer_name, location, role_title, confirmed_by, confirmed_at", "Fixture", "Rejected unless status is university_confirmed"]
+      ["P04 → P07", "Confirmed placement", "placement_id (PL-0001), status, student_id, opportunity_id, employer_name, location, role, period_start, period_end, supervisor_name, supervisor_contact, academic_advisor (may be null), application_id, confirmed_by, confirmed_at, opportunity_version", "File import (P04/P05 data dictionary v3)", "Rejected unless status is university_confirmed; each placement_id accepted once; the coordinator assigns the advisor when it is null"]
     ];
     const features = [
       ["Working", "Records saved in this browser; preparation plan; resource completion; simulated board; evidence submission, review and revision; skill gaps; learning agreement; logbook with feedback and revision; outcome judgements; support actions and overdue status; final review"],
-      ["Simulated", "P05 gaps and P04 placements (fixtures); P01 receiving endpoint; the Jira board; the demo date; single sign-on (role switcher instead)"],
+      ["Simulated", "No live API between the apps: P05 gaps and P04 placements arrive as JSON files that the coordinator imports (samples built from the P04/P05 data dictionary v3 until their real files arrive); P01 receiving endpoint; the Jira board; the demo date; single sign-on (role switcher instead)"],
       ["Deferred", "Content for the SQL and visualisation modules; notifications; cohort dashboard; Moodle competency integration; live Jira"]
     ];
     const fold = (key, title, body) => `<details class="more" data-key="${key}" ${ui.open[key] ? "open" : ""}><summary>${title}</summary><section class="panel"><div class="panel-body" style="padding-top:20px">${body}</div></section></details>`;
@@ -569,6 +654,7 @@
       `<div class="layout single"><div class="stack">
       <section class="panel"><div class="panel-body" style="padding-top:20px"><table class="table fixed"><colgroup><col style="width:120px"><col><col style="width:160px"></colgroup><thead><tr><th>Direction</th><th>Record</th><th>Connection</th></tr></thead><tbody>${ifaces.map((r) => `<tr><td style="white-space:nowrap;font-weight:500">${r[0]}</td><td>${r[1]}<div class="small muted" style="margin-top:2px">${r[4]}</div></td><td><span class="tag" title="${esc(r[3])}">${esc(r[3].replace(/ \(.*\)$/, ""))}</span></td></tr>`).join("")}</tbody></table></div></section>
       ${fold("rec-fields", "Fields in each record", `<table class="table fixed"><colgroup><col style="width:200px"><col></colgroup><tbody>${ifaces.map((r) => `<tr><td>${r[0]} · ${r[1]}</td><td class="small id" style="color:var(--ink-2)">${r[2]}</td></tr>`).join("")}</tbody></table>`)}
+      ${fold("rec-imports", `Imports from partner teams (${S.importLog.length})`, S.importLog.length ? `<table class="table fixed"><colgroup><col style="width:120px"><col style="width:200px"><col></colgroup><tbody>${S.importLog.slice().reverse().map((x) => `<tr><td class="muted">${d(x.at)}</td><td>${x.kind === "gaps" ? "P05 skill gaps" : "P04 placement"}<div class="small muted">${esc(x.from)}</div></td><td class="small">${x.added.length} added, ${x.skipped.length} skipped, ${x.rejected.length} not accepted${x.rejected.length ? `<div class="muted">${x.rejected.map((y) => esc(y.id + ": " + y.why)).join("<br>")}</div>` : ""}</td></tr>`).join("")}</tbody></table>` : '<p class="muted">No files imported yet.</p>')}
       ${fold("rec-payloads", `Payloads sent (${S.handoffs.length})`, S.handoffs.length ? S.handoffs.slice().reverse().map((h) => `<div style="margin-bottom:16px"><div class="small">${h.id} to <strong>${h.to}</strong> · ${d(h.at)}</div><pre class="payload">${esc(JSON.stringify(h.payload, null, 2))}</pre></div>`).join("") : '<p class="muted">Nothing sent yet. A demonstrated decision sends a record to P01.</p>')}
       ${fold("rec-scope", "What is working, simulated or deferred", `<table class="table fixed"><colgroup><col style="width:120px"><col></colgroup><tbody>${features.map((f) => `<tr><td style="font-weight:500">${f[0]}</td><td class="small" style="color:var(--ink-2)">${f[1]}</td></tr>`).join("")}</tbody></table>`)}
       ${fold("rec-log", `Event log (${S.events.length})`, `<table class="table fixed"><colgroup><col style="width:120px"><col style="width:170px"><col></colgroup><tbody>${S.events.slice().reverse().map((e) => `<tr><td class="muted">${d(e.at)}</td><td>${esc(e.actor)}</td><td>${esc(e.text)}</td></tr>`).join("")}</tbody></table>`)}
@@ -593,7 +679,7 @@
 
   /* ================= Sprint 2: AI features ================= */
   function ensureAI(s) {
-    s.chat = s.chat || []; s.handoffQ = s.handoffQ || []; s.matchReviews = s.matchReviews || [];
+    s.importLog = s.importLog || []; s.chat = s.chat || []; s.handoffQ = s.handoffQ || []; s.matchReviews = s.matchReviews || [];
     s.matchStudent = s.matchStudent || "COOP-B001";
     return s;
   }
@@ -733,6 +819,7 @@
     const skillChips = res.skills.map((k) => `<span class="chip ${k.status === "reviewed" ? "ok" : "none"}">${esc(k.name)} · ${k.status === "reviewed" ? `reviewed${k.evidence ? " " + k.evidence : ""}` : "self-declared"}</span>`).join(" ");
     return head(can("student") ? "Your internship matches" : "Internship matches",
       "Up to three open roles, ranked by rules you can see.") +
+      notice("rule", `<strong>Reference only.</strong> Matching is owned by P04/P05 (S2 Team 3). This page is our Sprint 2 test version. P06 takes its skill gaps from P05's file on the Skill gaps page.`) +
       `<p class="next" style="margin-top:-16px"><span class="next-dot" style="background:var(--navy)"></span><span class="next-text"><strong>Ranking is not placement.</strong> A placement is official only once the university confirms it.</span></p>` +
       `<div class="layout"><div class="stack">${picker ? `<div>${picker}</div>` : ""}
         <section class="panel"><div class="panel-head"><h2>${esc(st.name)}</h2><span class="small muted">${esc(st.programme)} · profile v${st.profileVersion}</span></div><div class="panel-body">
@@ -803,6 +890,9 @@
 
   /* ================= Render ================= */
   function render() {
+    /* Period 1 and the supervisor follow the placement that P04 sent. */
+    PERIOD.start = S.placement ? S.placement.periodStart : DEFAULTS.start; PERIOD.end = S.placement ? S.placement.periodEnd : DEFAULTS.end;
+    PEOPLE.supervisor.name = PEOPLE.supervisor.short = (S.placement && S.placement.supervisor) || DEFAULTS.sup;
     const { r, arg } = route();
     const pages = { plan: pagePlan, catalogue: pageCatalogue, module: () => pageModule(arg), review: pageReviewQueue, submission: () => pageSubmission(arg), gaps: pageGaps,
       placement: pagePlacement, agreement: pageAgreement, logbook: pageLogbook, progress: pageProgress, final: pageFinal, records: pageRecords,
@@ -912,13 +1002,7 @@
       "open-settings": () => $("#settings").showModal(),
       "close-settings": () => $("#settings").close(),
       "preset": () => { S = ensureAI(PRESETS[b.dataset.preset].make()); ui = { open: {}, errors: {}, draft: {} }; save(); location.hash = "#/" + HOME[S.role]; render(); toast(`Loaded “${PRESETS[S.preset].label}”`); },
-      "import-gaps": () => {
-        let added = 0, skipped = 0;
-        FIXTURES.P05_GAPS.forEach((g) => { if (S.gaps.some((x) => x.skillId === g.skill_id && x.status === "open") || S.gaps.some((x) => x.id === g.gap_id)) { skipped++; return; }
-          S.gaps.push({ id: g.gap_id, studentId: g.student_id, skillId: g.skill_id, opportunityId: g.opportunity_id, opportunityVersion: g.opportunity_version, recommendationId: g.recommendation_id, profileVersion: g.profile_version, gapType: g.gap_type, source: "P05", reason: g.reason, createdAt: S.today, status: "open" }); added++; });
-        if (added) event(`Imported ${added} skill gap${added > 1 ? "s" : ""} from P05`);
-        commit(added ? `Imported ${added} gap${added > 1 ? "s" : ""} from P05${skipped ? `; ${skipped} already open` : ""}` : "No new gaps: these skills already have open gaps");
-      },
+      "import-gaps": () => importGaps(FIXTURES.P05_GAPS, "P05 sample, data dictionary v3"),
       "resource-done": () => { const m = b.dataset.module; S.resources[m] = S.today; event(`Marked the ${MODULES[m].title} resource complete`); commit("Activity complete. Your skill is not yet demonstrated."); },
       "move": () => { const it = S.board.items.find((i) => i.key === b.dataset.key);
         if (!it.assignee) { toast(`Give ${it.key} an owner before moving it`); return; }
@@ -929,12 +1013,12 @@
       "log-request": () => { ui.open["req-" + b.dataset.id] = true; render(); const t = document.getElementById("req-" + b.dataset.id); if (t) t.focus(); },
       "log-request-cancel": () => { ui.open["req-" + b.dataset.id] = false; render(); },
       "log-revise": () => { ui.open["rev-" + b.dataset.id] = true; ui.open[b.dataset.id] = true; render(); const t = document.getElementById("rev-" + b.dataset.id); if (t) t.focus(); },
-      "sign": () => { const k = b.dataset.who; S.agreement.signoffs[k] = S.today; event(`Agreed the learning agreement as ${PEOPLE[k].role.toLowerCase()}`);
+      "sign": () => { const k = b.dataset.who; if (k === "advisor" && !S.placement.advisor) { toast("Assign an academic advisor first"); return; } S.agreement.signoffs[k] = S.today; event(`Agreed the learning agreement as ${PEOPLE[k].role.toLowerCase()}`);
         if (Object.values(S.agreement.signoffs).every(Boolean)) { S.agreement.status = "agreed"; event("Learning agreement agreed by all three parties"); }
         commit(S.agreement.status === "agreed" ? "Learning agreement is now agreed and locked" : "Agreement recorded"); },
       "remove-goal": () => { S.agreement.goals = S.agreement.goals.filter((g) => g.id !== b.dataset.id); S.agreement.goals.forEach((g, i) => (g.id = "G" + (i + 1))); commit("Goal removed"); },
-      "placement-ok": () => { S.placement = Object.assign({}, FIXTURES.P04_PLACEMENT_CONFIRMED, { receivedAt: S.today }); event("Received confirmed placement PL-028 from P04"); commit("Placement PL-028 received"); },
-      "placement-bad": () => { S.placementAttempts.push({ placementId: "PL-031", at: S.today }); event("Placement PL-031 not accepted: awaiting university confirmation"); commit("PL-031 blocked: not yet confirmed by the university"); },
+      "placement-ok": () => importPlacements([FIXTURES.P04_PLACEMENT_CONFIRMED], "P04 sample, data dictionary v3"),
+      "placement-bad": () => importPlacements([FIXTURES.P04_PLACEMENT_UNCONFIRMED], "Guard test"),
       "judge": () => { ui.open.editLO = b.dataset.lo; ui.errors.judge = null; render(); },
       "judge-cancel": () => { ui.open.editLO = null; render(); },
       "close-open": () => { ui.open["close-" + b.dataset.id] = true; render(); const t = document.getElementById("cl-" + b.dataset.id); if (t) t.focus(); },
@@ -957,6 +1041,7 @@
   document.addEventListener("change", (e) => {
     const el = e.target.closest("[data-change]"); if (!el) return;
     const c = el.dataset.change;
+    if (c === "import-file") { const file = el.files && el.files[0]; if (!file) return; const kind = el.dataset.kind; const rd = new FileReader(); rd.onload = () => runImport(kind, String(rd.result), file.name); rd.readAsText(file); return; }
     if (c === "role") { S.role = el.value; save(); render(); toast(`Now viewing as ${me().name}`); }
     if (c === "match-student") { S.matchStudent = el.value; save(); render(); }
     if (c === "assign") { const it = S.board.items.find((i) => i.key === el.dataset.key); it.assignee = el.value; save(); render(); }
@@ -1045,6 +1130,12 @@
       "match-decide": () => { const q = S.matchReviews.find((x) => x.id === f.dataset.id), r = (fd.get("reply") || "").trim(), dec = e.submitter ? e.submitter.value : "ok";
         if (words(r) < 4) { ui.errors["md-" + q.id] = "Explain the decision to the student (at least four words)."; return render(); }
         Object.assign(q, { status: "closed", decision: dec, reply: r, by: me().name, closedAt: S.today }); ui.errors["md-" + q.id] = null; event(`Reviewed match request ${q.id}: ${dec === "ok" ? "fine to apply" : "not suitable"}`); commit(`${q.id} answered`); },
+      "import": () => { const kind = f.dataset.kind, text = (fd.get("json") || "").trim();
+        if (!text) { ui.errors["imp-" + kind] = "Choose a file or paste the JSON first."; return render(); }
+        runImport(kind, text, "pasted JSON"); },
+      "assign-advisor": () => { const name = fd.get("advisor"); if (!S.placement || !name) return;
+        Object.assign(S.placement, { advisor: name, advisorAssignedBy: me().name, advisorAssignedAt: S.today });
+        event(`Assigned academic advisor ${name} to placement ${S.placement.placementId}`); commit(`${name} assigned as academic advisor`); },
       "date": () => { const v = fd.get("date"); if (v) { S.today = v; $("#settings").close(); commit(`Demo date set to ${d(v)}`); } }
     };
     if (handlers[kind]) handlers[kind]();
