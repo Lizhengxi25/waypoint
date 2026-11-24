@@ -33,21 +33,21 @@ Live site: https://lizhengxi25.github.io/waypoint/ (the repository name is kept 
 |---|---|
 | `index.html` | Built single-file app (published by GitHub Pages) |
 | `data/` | Synthetic sample data: students, opportunities, approved FAQ, skill vocabulary (CSV) |
-| `data/handoffs/` | `demo/` holds the files with problem records used in the Sprint 3 review. Sample files: P05 → P06 gap and P04 → P07 placement (P04/P05 data dictionary v3 format, used until their real files arrive), P06 → P01 review results (snake_case, for the joint test with P01) |
+| `data/handoffs/` | `from_p04p05/` holds the real gap and placement files P04/P05 sent on 24 Nov (both import as they are). `demo/` holds the files with problem records used in the Sprint 3 review. Sample files: P05 → P06 gap and P04 → P07 placement (P04/P05 data dictionary v3 format, used until their real files arrive), P06 → P01 review results (snake_case, for the joint test with P01) |
 | `source/src/ai_data.js` | Approved FAQ, synthetic students and opportunities, weights, test plan, failure log |
 | `data/p01p03/`, `source/src/partner_data.js` | P01–P03 team's data (copy of their file) and the generated script the app loads |
 | `source/src/ai_engine.js` | Assistant retrieval and matching rules (pure functions) |
 | `source/src/app.js`, `data.js`, `styles.css` | Screens, P06/P07 data and the shared Coop Platform theme (navy #0C2840, blue #144673, gold #D9BA82) |
 | `source/src/faq_partner.js` | Approved FAQ answers from the P01–P03 team (generated; empty until their file arrives) |
 | `source/tools/import_faq.py` | Turns their Section / Question / Answer file into `faq_partner.js` and `data/faq_partner.csv` |
-| `source/tests/` | `integration_test.py` (34 Sprint 3 checks), `ai_test.py` (28) and `acceptance_test.py` (37), with their result JSON |
+| `source/tests/` | `integration_test.py` (39 Sprint 3 checks), `ai_test.py` (28) and `acceptance_test.py` (37), with their result JSON |
 
 ## Build and test
 ```
 cd source
 python3 build.py                      # writes dist/TeamP6P7.html; copy it to ../index.html
 pip install playwright && playwright install chromium
-python3 tests/integration_test.py     # 34 checks (Sprint 3 partner imports)
+python3 tests/integration_test.py     # 39 checks (Sprint 3 partner imports)
 python3 tests/ai_test.py              # 28 checks
 python3 tests/acceptance_test.py      # 37 checks
 ```

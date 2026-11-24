@@ -1,0 +1,18 @@
+{
+  "placement_id": "PL-0001",
+  "status": "university_confirmed",
+  "student_id": "COOP-B001",
+  "opportunity_id": "OP-028",
+  "employer_name": "Emirates Group",
+  "location": "Dubai",
+  "role": "Aviation Analytics Intern",
+  "period_start": "2027-02-01",
+  "period_end": "2027-05-31",
+  "supervisor_name": "R. Khan (synthetic)",
+  "supervisor_contact": "supervisor.op028@example.com",
+  "academic_advisor": null,
+  "application_id": "APP-0001",
+  "opportunity_version": 2,
+  "confirmed_by": "COORD-01 (simulated coordinator)",
+  "confirmed_at": "2026-11-24T08:31:58+00:00"
+}

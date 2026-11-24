@@ -105,6 +105,24 @@ async def main():
         await pg.click("details[data-key=rec-imports] summary"); t = await text()
         check("S3-REC", "Handoffs page keeps an import log with reasons", "Imports from partner teams" in t and "not accepted" in t and "accepts only university_confirmed" in t)
 
+        # ---------- Real files from P04/P05 (Faiz, 24 Nov, samples/ in their repo, made by their app on P01-P03 data) ----------
+        REAL = DATA / "from_p04p05"
+        await preset("fresh"); await role("coordinator"); await go("gaps")
+        await pg.set_input_files("#imp-file-gaps", str(REAL / "p06_gap_COOP-B001_OP-028.json")); await pg.wait_for_timeout(300)
+        s = await S(); g = s["gaps"]
+        check("S3-REAL", "P05's real gap file is accepted: GAP-0001 Jira for OP-028, REC-19d15714, profile v2", len(g) == 1 and g[0]["id"] == "GAP-0001" and g[0]["recommendationId"] == "REC-19d15714" and g[0]["profileVersion"] == 2 and not s["importLog"][-1]["rejected"])
+        await role("student"); await go("plan"); t = await text()
+        check("S3-REAL", "The real gap appears on Layla's plan, linked to MOD-JIRA-101", "GAP-0001" in t and "Work tracking in Jira" in t)
+        await role("coordinator"); await go("placement")
+        await pg.set_input_files("#imp-file-placement", str(REAL / "p07_placement_COOP-B001_OP-028.json")); await pg.wait_for_timeout(300)
+        s = await S(); pl = s["placement"]; t = await text()
+        check("S3-REAL", "P04's real placement file is accepted: PL-0001, 1 Feb to 31 May 2027, confirmed by COORD-01 on 24 Nov 2026",
+              pl and pl["placementId"] == "PL-0001" and pl["confirmedBy"] == "COORD-01 (simulated coordinator)" and pl["confirmedAt"] == "2026-11-24" and "1 Feb 2027 to 31 May 2027" in t and not s["importLog"][-1]["rejected"])
+        check("S3-REAL", "The real placement has no advisor; it is flagged and the coordinator assigns one", "No academic advisor yet" in t)
+        await pg.click("form[data-form=assign-advisor] button")
+        s = await S(); check("S3-REAL", "Advisor assigned on the real placement", s["placement"]["advisor"] == "Dr. Ahmed Youssef")
+        await pg.screenshot(path=str(OUT / "s3_real_placement.png"))
+
         # ---------- Other Sprint 3 changes ----------
         await role("student"); await go("matches")
         t = await text(); check("S3-OWN", "Matching page says matching is owned by P04/P05", "Reference only" in t and "owned by P04/P05" in t)

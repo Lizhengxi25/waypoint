@@ -1,0 +1,10 @@
+{
+  "gap_id": "GAP-0001",
+  "student_id": "COOP-B001",
+  "skill_id": "SK-JIRA",
+  "opportunity_id": "OP-028",
+  "reason": "OP-028 requires Jira; not yet demonstrated",
+  "recommendation_id": "REC-19d15714",
+  "opportunity_version": 2,
+  "profile_version": 2
+}
