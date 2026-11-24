@@ -1,0 +1,349 @@
+{
+  "_meta": {
+    "description": "SYNTHETIC test data for the IPP prototype (P01 student profiles, P03 published listings). Not real students or real placements.",
+    "owner_team": "P01-P03",
+    "shared_with": [
+      "P04/P05 (AI Team)",
+      "P06/P07 (Waypoint)"
+    ],
+    "updated": "2026-11-24",
+    "field_status": "Matches P04/P05 data dictionary v3 (Sprint 3)",
+    "rules": [
+      "Read the latest profile version with profile_status = submitted (ignore drafts).",
+      "Recommend or accept applications only for listings that are published AND open.",
+      "Corrections create a new version; old versions are never edited.",
+      "supervisor_name and supervisor_contact are passed to P07 only and must not be shown to students.",
+      "A recommendation is not a placement; eligibility and official approval stay with humans."
+    ],
+    "expected_test_results": {
+      "eligible_for_recommendation": [
+        "OP-028",
+        "OP-031",
+        "OP-034"
+      ],
+      "not_eligible": {
+        "OP-036": "published but closed (filled)",
+        "OP-039": "not yet published (still under review)"
+      },
+      "edge_cases": {
+        "COOP-B001": "two submitted versions; use profile_version 2",
+        "COOP-B004": "no interests and unknown availability; matching should say what is missing rather than guess"
+      }
+    }
+  },
+  "skills_vocabulary": [
+    {
+      "skill_id": "SK-JIRA",
+      "label": "Jira / agile tracking"
+    },
+    {
+      "skill_id": "SK-SQL",
+      "label": "SQL"
+    },
+    {
+      "skill_id": "SK-VIZ",
+      "label": "Data visualization (incl. Tableau, Power BI)"
+    },
+    {
+      "skill_id": "SK-PY",
+      "label": "Python"
+    },
+    {
+      "skill_id": "SK-EXCEL",
+      "label": "Excel"
+    },
+    {
+      "skill_id": "SK-FIGMA",
+      "label": "Figma / UI design"
+    },
+    {
+      "skill_id": "SK-COMM",
+      "label": "Communication"
+    },
+    {
+      "skill_id": "SK-DMKT",
+      "label": "Digital marketing"
+    }
+  ],
+  "student_profiles": [
+    {
+      "student_id": "COOP-B001",
+      "profile_version": 1,
+      "profile_status": "submitted",
+      "display_name": "Layla Hassan",
+      "interests": [
+        "aviation",
+        "analytics"
+      ],
+      "availability_start": "2027-01-01",
+      "availability_end": "2027-06-30",
+      "skills": [
+        {
+          "skill_id": "SK-SQL",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        },
+        {
+          "skill_id": "SK-JIRA",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        },
+        {
+          "skill_id": "SK-VIZ",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        }
+      ]
+    },
+    {
+      "student_id": "COOP-B001",
+      "profile_version": 2,
+      "profile_status": "submitted",
+      "display_name": "Layla Hassan",
+      "interests": [
+        "aviation",
+        "analytics"
+      ],
+      "availability_start": "2027-01-01",
+      "availability_end": "2027-06-30",
+      "skills": [
+        {
+          "skill_id": "SK-SQL",
+          "evidence_status": "reviewed",
+          "reviewed_by": "Maya (learning reviewer)",
+          "reviewed_at": "2026-11-10",
+          "evidence_id": "E-SQL-01"
+        },
+        {
+          "skill_id": "SK-JIRA",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        },
+        {
+          "skill_id": "SK-VIZ",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        }
+      ]
+    },
+    {
+      "student_id": "COOP-B002",
+      "profile_version": 1,
+      "profile_status": "submitted",
+      "display_name": "Arjun Mehta",
+      "interests": [
+        "energy",
+        "data engineering"
+      ],
+      "availability_start": "2027-02-01",
+      "availability_end": "2027-05-31",
+      "skills": [
+        {
+          "skill_id": "SK-PY",
+          "evidence_status": "reviewed",
+          "reviewed_by": "Maya (learning reviewer)",
+          "reviewed_at": "2026-11-09",
+          "evidence_id": "E-PY-02"
+        },
+        {
+          "skill_id": "SK-SQL",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        },
+        {
+          "skill_id": "SK-EXCEL",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        }
+      ]
+    },
+    {
+      "student_id": "COOP-B003",
+      "profile_version": 1,
+      "profile_status": "submitted",
+      "display_name": "Mei Chen",
+      "interests": [
+        "product design",
+        "startups"
+      ],
+      "availability_start": "2027-01-15",
+      "availability_end": "2027-06-15",
+      "skills": [
+        {
+          "skill_id": "SK-FIGMA",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        },
+        {
+          "skill_id": "SK-COMM",
+          "evidence_status": "reviewed",
+          "reviewed_by": "Maya (learning reviewer)",
+          "reviewed_at": "2026-11-08",
+          "evidence_id": "E-COMM-03"
+        },
+        {
+          "skill_id": "SK-DMKT",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        }
+      ]
+    },
+    {
+      "student_id": "COOP-B004",
+      "profile_version": 1,
+      "profile_status": "submitted",
+      "display_name": "Noor Al Hashimi",
+      "interests": [],
+      "availability_start": null,
+      "availability_end": null,
+      "skills": [
+        {
+          "skill_id": "SK-EXCEL",
+          "evidence_status": "self_declared",
+          "reviewed_by": null,
+          "reviewed_at": null,
+          "evidence_id": null
+        }
+      ]
+    }
+  ],
+  "published_listings": [
+    {
+      "opportunity_id": "OP-028",
+      "version": 2,
+      "submission_version": 2,
+      "employer_name": "Emirates Group",
+      "title": "Aviation Analytics Intern",
+      "sector": "aviation",
+      "location": "Dubai",
+      "work_mode": "on-site",
+      "description": "Support the analytics team with SQL queries, Jira ticket tracking and dashboards on flight operations data.",
+      "start_date": "2027-02-01",
+      "end_date": "2027-05-31",
+      "required_skills": [
+        "SK-SQL",
+        "SK-JIRA"
+      ],
+      "desirable_skills": [
+        "SK-VIZ"
+      ],
+      "publication_status": "published",
+      "listing_status": "open",
+      "supervisor_name": "R. Khan (synthetic)",
+      "supervisor_contact": "supervisor.op028@example.com"
+    },
+    {
+      "opportunity_id": "OP-031",
+      "version": 1,
+      "submission_version": 1,
+      "employer_name": "Desert Grid Energy (fictional)",
+      "title": "Energy Data Intern",
+      "sector": "energy",
+      "location": "Abu Dhabi",
+      "work_mode": "on-site",
+      "description": "Clean and analyse energy grid data in Python and SQL, and prepare weekly Excel summaries.",
+      "start_date": "2027-02-01",
+      "end_date": "2027-05-31",
+      "required_skills": [
+        "SK-PY",
+        "SK-SQL"
+      ],
+      "desirable_skills": [
+        "SK-EXCEL"
+      ],
+      "publication_status": "published",
+      "listing_status": "open",
+      "supervisor_name": "A. Saleh (synthetic)",
+      "supervisor_contact": "supervisor.op031@example.com"
+    },
+    {
+      "opportunity_id": "OP-034",
+      "version": 1,
+      "submission_version": 1,
+      "employer_name": "Oasis Ventures (fictional startup)",
+      "title": "Product Design Intern",
+      "sector": "technology",
+      "location": "Abu Dhabi",
+      "work_mode": "hybrid",
+      "description": "Design app screens in Figma for an early-stage startup and help with user research and launch content.",
+      "start_date": "2027-01-15",
+      "end_date": "2027-05-15",
+      "required_skills": [
+        "SK-FIGMA"
+      ],
+      "desirable_skills": [
+        "SK-COMM",
+        "SK-DMKT"
+      ],
+      "publication_status": "published",
+      "listing_status": "open",
+      "supervisor_name": "L. Park (synthetic)",
+      "supervisor_contact": "supervisor.op034@example.com"
+    },
+    {
+      "opportunity_id": "OP-036",
+      "version": 1,
+      "submission_version": 1,
+      "employer_name": "Falcon Analytics (fictional)",
+      "title": "BI Dashboard Intern",
+      "sector": "finance",
+      "location": "Dubai",
+      "work_mode": "on-site",
+      "description": "Build BI dashboards in Tableau or Power BI and maintain Excel reporting for the finance team.",
+      "start_date": "2027-02-01",
+      "end_date": "2027-06-30",
+      "required_skills": [
+        "SK-VIZ",
+        "SK-EXCEL"
+      ],
+      "desirable_skills": [
+        "SK-SQL"
+      ],
+      "publication_status": "published",
+      "listing_status": "closed",
+      "supervisor_name": "M. Ortiz (synthetic)",
+      "supervisor_contact": "supervisor.op036@example.com"
+    },
+    {
+      "opportunity_id": "OP-039",
+      "version": 1,
+      "submission_version": 1,
+      "employer_name": "Gulf Health Data Office (fictional government)",
+      "title": "Health Data Intern",
+      "sector": "health",
+      "location": "Abu Dhabi",
+      "work_mode": "on-site",
+      "description": "Assist with health data quality checks in Python and simple visual reports.",
+      "start_date": null,
+      "end_date": null,
+      "required_skills": [
+        "SK-PY"
+      ],
+      "desirable_skills": [
+        "SK-VIZ"
+      ],
+      "publication_status": "unpublished",
+      "listing_status": "open",
+      "supervisor_name": "S. Rahman (synthetic)",
+      "supervisor_contact": "supervisor.op039@example.com"
+    }
+  ]
+}

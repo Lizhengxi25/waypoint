@@ -10,6 +10,7 @@ for fam, file, weight, style in [("Plex Sans","plex.woff2","400 600","normal"),(
     fonts.append(f"@font-face{{font-family:'{fam}';src:url(data:font/woff2;base64,{b}) format('woff2');font-weight:{weight};font-style:{style};font-display:swap}}")
 html = html.replace('<link rel="stylesheet" href="fonts/fonts.css"><!--FONTS-->', "<style>" + "".join(fonts) + "</style>")
 html = html.replace('<link rel="stylesheet" href="styles.css">', "<style>\n" + (src/"styles.css").read_text() + "\n</style>")
+html = html.replace('<script src="partner_data.js"></script>', "<script>\n" + (src/"partner_data.js").read_text() + "\n</script>")
 html = html.replace('<script src="data.js"></script>', "<script>\n" + (src/"data.js").read_text() + "\n</script>")
 for js in ["ai_data.js", "faq_partner.js", "ai_engine.js"]:
     html = html.replace(f'<script src="{js}"></script>', "<script>\n" + (src/js).read_text() + "\n</script>")

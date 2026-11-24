@@ -30,6 +30,36 @@
   "detail": ""
  },
  {
+  "ac": "S3-VER",
+  "desc": "Gap built on an old P01 profile version is not accepted (P01 latest submitted = v2)",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-VER",
+  "desc": "Gap built on an old P03 listing version is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Gap for an opportunity P03 has not published is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Gap for a student not in P01's data is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-P01",
+  "desc": "P06 shows Layla's P01 profile (latest submitted v2) and flags a review P06 has no record of",
+  "ok": true,
+  "detail": ""
+ },
+ {
   "ac": "S3-GAP",
   "desc": "Gap row shows recommendation, opportunity version and profile version",
   "ok": true,
@@ -62,6 +92,12 @@
  {
   "ac": "S3-EXC",
   "desc": "Placement whose period ends before it starts is not accepted",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "ac": "S3-EXC",
+  "desc": "Placement for a listing P03 has not published is not accepted",
   "ok": true,
   "detail": ""
  },

@@ -360,6 +360,7 @@
         <section class="panel">${S.gaps.length ? `<div class="panel-body" style="padding-top:20px"><table class="table"><thead><tr><th>Gap</th><th>Skill</th><th>Source</th><th>Raised</th><th>Status</th></tr></thead><tbody>
           ${S.gaps.map((g) => `<tr><td class="id">${g.id}</td><td>${esc(skillOf(g.skillId).name)}<div class="small muted">${esc(g.reason)}</div>${g.recommendationId ? `<div class="small muted id">${esc(g.recommendationId)} · ${esc(g.opportunityId)} v${esc(g.opportunityVersion)} · profile v${esc(g.profileVersion)}</div>` : ""}</td><td>${g.source === "P05" ? 'P05' : g.source === "match" ? 'Matching' : 'Manual'}</td><td>${d(g.createdAt)}</td><td>${g.status === "open" ? chip("wait", "Open") : chip("ok", "Closed by review")}</td></tr>`).join("")}
           </tbody></table></div>` : `<div class="empty"><h3>No gaps recorded</h3><p class="muted">Import the file from P05 or enter a gap by hand.</p></div>`}</section>
+        ${p01ProfilePanel()}
         ${can("coordinator") ? importPanel("gaps") : ""}
         ${can("coordinator") ? `<section class="panel"><div class="panel-head"><h2>Add a gap</h2></div><div class="panel-body">
           ${`<form data-form="manual-gap"><div class="grid-2">
@@ -388,6 +389,16 @@
     walk(data);
     return out.length ? { records: out } : { error: "No records found in this JSON." };
   }
+  /* P01–P03 data (profiles and listings): P01's rule is to read the latest version with profile_status = submitted. */
+  const p01Latest = (sid) => P01P03.student_profiles.filter((x) => x.student_id === sid && x.profile_status === "submitted").sort((a, b) => b.profile_version - a.profile_version)[0] || null;
+  const p03Listing = (oid) => P01P03.published_listings.find((x) => x.opportunity_id === oid) || null;
+  const p01SkillName = (id) => (P01P03.skills_vocabulary.find((k) => k.skill_id === id) || { label: id }).label;
+  function studentProblem(sid, mod) {
+    const pr = p01Latest(sid);
+    if (!pr) return `${sid} is not in P01's student profiles`;
+    if (!P06_STUDENTS.includes(sid)) return `${sid} (${pr.display_name}, in P01's data) has no ${mod} record in this demo; we follow Layla (COOP-B001) only`;
+    return null;
+  }
   const missingFields = (r, fields) => fields.filter((k) => r[k] === undefined || r[k] === null || r[k] === "");
   function importGaps(records, from) {
     const res = { kind: "gaps", from, at: S.today, added: [], skipped: [], rejected: [] };
@@ -395,7 +406,11 @@
       const id = r.gap_id || "(no gap_id)";
       const miss = missingFields(r, ["gap_id", "student_id", "skill_id", "opportunity_id", "reason"]);
       if (miss.length) return res.rejected.push({ id, why: `Missing ${miss.join(", ")}` });
-      if (!P06_STUDENTS.includes(r.student_id)) return res.rejected.push({ id, why: `${r.student_id} has no P06 record in this demo (only Layla, COOP-B001)` });
+      const sp = studentProblem(r.student_id, "P06"); if (sp) return res.rejected.push({ id, why: sp });
+      const li = p03Listing(r.opportunity_id), pr = p01Latest(r.student_id);
+      if (!li) return res.rejected.push({ id, why: `${r.opportunity_id} is not in P03's published listings` });
+      if (r.opportunity_version != null && r.opportunity_version !== li.version) return res.rejected.push({ id, why: `Built on ${r.opportunity_id} v${r.opportunity_version}; P03's current listing is v${li.version}. Ask P05 to rerun matching.` });
+      if (r.profile_version != null && r.profile_version < pr.profile_version) return res.rejected.push({ id, why: `Built on profile v${r.profile_version}; P01's latest submitted profile is v${pr.profile_version}. Ask P05 to rerun matching.` });
       if (!skillOf(r.skill_id)) return res.rejected.push({ id, why: `No P06 module for ${r.skill_id} yet (P06 has ${SKILLS.map((k) => k.id).join(", ")}). The coordinator follows up by hand.` });
       if (S.gaps.some((x) => x.id === r.gap_id)) return res.skipped.push({ id, why: "Already imported" });
       const open = S.gaps.find((x) => x.skillId === r.skill_id && x.status === "open");
@@ -413,12 +428,15 @@
       const miss = missingFields(r, ["placement_id", "status", "student_id", "opportunity_id", "employer_name", "period_start", "period_end"]);
       if (miss.length) return res.rejected.push({ id, why: `Missing ${miss.join(", ")}` });
       if (r.status !== "university_confirmed") { S.placementAttempts.push({ placementId: id, status: r.status, at: S.today }); return res.rejected.push({ id, why: `Status is “${r.status}”. P07 accepts only university_confirmed placements.` }); }
-      if (!P06_STUDENTS.includes(r.student_id)) return res.rejected.push({ id, why: `${r.student_id} has no P07 record in this demo (only Layla, COOP-B001)` });
+      const sp = studentProblem(r.student_id, "P07"); if (sp) return res.rejected.push({ id, why: sp });
+      const li = p03Listing(r.opportunity_id);
+      if (!li || li.publication_status !== "published") return res.rejected.push({ id, why: `${r.opportunity_id} is not a published P03 listing` });
       if (!isDate(r.period_start) || !isDate(r.period_end) || r.period_end <= r.period_start) return res.rejected.push({ id, why: `Period ${r.period_start} to ${r.period_end} is not a valid date range` });
       if (S.placement && S.placement.placementId === r.placement_id) return res.skipped.push({ id, why: "Already received. P04 sends each placement once." });
       if (S.placement) return res.rejected.push({ id, why: `Layla already has an active placement (${S.placement.placementId})` });
-      S.placement = placementFromP04(r, S.today);
-      res.added.push({ id, why: `${r.employer_name}, ${r.period_start} to ${r.period_end}${S.placement.advisor ? "" : ". No academic advisor yet: the coordinator assigns one."}` });
+      S.placement = placementFromP04(Object.assign({}, r, { supervisor_name: r.supervisor_name || li.supervisor_name, supervisor_contact: r.supervisor_contact || li.supervisor_contact }), S.today);
+      const datesDiffer = li.start_date && (r.period_start !== li.start_date || r.period_end !== li.end_date);
+      res.added.push({ id, why: `${r.employer_name}, ${r.period_start} to ${r.period_end}${datesDiffer ? ` (P03 listing says ${li.start_date} to ${li.end_date}; coordinator to check)` : ""}${S.placement.advisor ? "" : ". No academic advisor yet: the coordinator assigns one."}` });
     });
     finishImport(res, "placement", "P04");
   }
@@ -434,6 +452,22 @@
     const p = partnerRecords(text);
     if (p.error) { ui.errors["imp-" + kind] = p.error; return render(); }
     (kind === "gaps" ? importGaps : importPlacements)(p.records, from);
+  }
+  function p01ProfilePanel() {
+    const pr = p01Latest("COOP-B001"); if (!pr) return "";
+    const n = P01P03.student_profiles.filter((x) => x.student_id === pr.student_id).length;
+    const rows = pr.skills.map((k) => {
+      const ours = S.submissions.find((x) => x.skillId === k.skill_id && x.status === "demonstrated");
+      const st = k.evidence_status === "reviewed" ? chip("ok", `Reviewed · ${k.evidence_id}`) : chip("none", "Self-declared");
+      const note = k.evidence_status === "reviewed" && !ours ? chip("warn", `No P06 review record for ${k.evidence_id}`)
+        : k.evidence_status !== "reviewed" && ours ? chip("wait", `P06 sent ${ours.id} as demonstrated; P01 to update`)
+        : k.evidence_status === "reviewed" ? chip("ok", "Matches P06") : `<span class="small muted">No review yet</span>`;
+      return `<tr><td>${esc(p01SkillName(k.skill_id))}<div class="small muted id">${esc(k.skill_id)}</div></td><td>${st}${k.reviewed_by ? `<div class="small muted">${esc(k.reviewed_by)}, ${d(k.reviewed_at)}</div>` : ""}</td><td>${note}</td></tr>`;
+    }).join("");
+    return `<section class="panel"><div class="panel-head"><h2>Layla’s profile from P01</h2><span class="small muted">v${pr.profile_version}, latest submitted of ${n} versions</span></div><div class="panel-body">
+      <table class="table"><thead><tr><th>Skill</th><th>P01 evidence status</th><th>P06 check</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="small muted" style="margin:10px 0 0">Source: P01–P03 team data, ${d(P01P03._meta.updated)}. Read only: P01 owns the profile, and P06 sends review results back to it.</p>
+    </div></section>`;
   }
   function importPanel(kind) {
     const team = kind === "gaps" ? "P05" : "P04", r = ui.importResult && ui.importResult.kind === kind ? ui.importResult : null, err = ui.errors["imp-" + kind];
@@ -639,6 +673,7 @@
   function pageRecords() {
     const ifaces = [
       ["P05 → P06", "Skill gap", "gap_id, student_id, skill_id, opportunity_id, reason, recommendation_id, opportunity_version, profile_version (gap_type optional)", "File import (P04/P05 data dictionary v3)", "P05 creates gap_id. Checked on import: required fields, known student, a P06 module for the skill, no duplicate"],
+      ["P01 → P06/P07", "Student profiles and P03 listings (read only)", "student_id, profile_version, profile_status, display_name, skills[skill_id, evidence_status, reviewed_by, reviewed_at, evidence_id]; opportunity_id, version, start_date, end_date, publication_status, listing_status, supervisor_name, supervisor_contact", "File (P01–P03 data, 24 Nov)", "Latest submitted profile version is used; gaps and placements are checked against it and against P03’s listings"],
       ["P06 → P01", "Reviewed skill evidence", "student_id, skill_id, evidence_id, outcome, reviewer, review_date", "Fixture endpoint (joint test with P01 in Sprint 2)", "Sent on every review decision; outcome = demonstrated, needs_more_evidence or not_demonstrated; P01 marks reviewed only on demonstrated"],
       ["P06 → P07", "Readiness summary", "studentId, demonstrated[], inProgress[]", "Working (same team)", "Sent with each demonstrated decision"],
       ["P04 → P07", "Confirmed placement", "placement_id (PL-0001), status, student_id, opportunity_id, employer_name, location, role, period_start, period_end, supervisor_name, supervisor_contact, academic_advisor (may be null), application_id, confirmed_by, confirmed_at, opportunity_version", "File import (P04/P05 data dictionary v3)", "Rejected unless status is university_confirmed; each placement_id accepted once; the coordinator assigns the advisor when it is null"]

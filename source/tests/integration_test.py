@@ -34,12 +34,21 @@ async def main():
         await paste("gaps", {"gaps": [GAP,
             dict(GAP, gap_id="GAP-0002", skill_id="SK-EXCEL", reason="OP-033 requires Excel"),
             {k: v for k, v in dict(GAP, gap_id="GAP-0003").items() if k != "reason"},
-            dict(GAP, gap_id="GAP-0004", student_id="COOP-B002")]})
+            dict(GAP, gap_id="GAP-0004", student_id="COOP-B002"),
+            dict(GAP, gap_id="GAP-0005", profile_version=1),
+            dict(GAP, gap_id="GAP-0006", opportunity_version=1),
+            dict(GAP, gap_id="GAP-0007", opportunity_id="OP-999"),
+            dict(GAP, gap_id="GAP-0008", student_id="COOP-B999")]})
         s = await S(); t = await text()
         check("S3-GAP", "Gap in P05's v3 format (no gap_type) is imported with its versions", len(s["gaps"]) == 1 and s["gaps"][0]["id"] == "GAP-0001" and s["gaps"][0]["recommendationId"] == "REC-7F3A2C91" and s["gaps"][0]["profileVersion"] == 2)
         check("S3-EXC", "Gap for a skill with no P06 module is not accepted, with the reason", "No P06 module for SK-EXCEL" in t)
         check("S3-EXC", "Gap with a missing field is not accepted", "Missing reason" in t)
-        check("S3-EXC", "Gap for a student P06 does not hold is not accepted", "COOP-B002 has no P06 record" in t)
+        check("S3-EXC", "Gap for a student P06 does not hold is not accepted", "COOP-B002 (Arjun Mehta, in P01's data) has no P06 record" in t)
+        check("S3-VER", "Gap built on an old P01 profile version is not accepted (P01 latest submitted = v2)", "Built on profile v1; P01's latest submitted profile is v2" in t)
+        check("S3-VER", "Gap built on an old P03 listing version is not accepted", "Built on OP-028 v1; P03's current listing is v2" in t)
+        check("S3-EXC", "Gap for an opportunity P03 has not published is not accepted", "OP-999 is not in P03's published listings" in t)
+        check("S3-EXC", "Gap for a student not in P01's data is not accepted", "COOP-B999 is not in P01's student profiles" in t)
+        check("S3-P01", "P06 shows Layla's P01 profile (latest submitted v2) and flags a review P06 has no record of", "v2, latest submitted of 2 versions" in t and "No P06 review record for E-SQL-01" in t)
         check("S3-GAP", "Gap row shows recommendation, opportunity version and profile version", "REC-7F3A2C91 · OP-028 v2 · profile v2" in t)
         await pg.screenshot(path=str(OUT / "s3_gaps_import.png"))
         await paste("gaps", [{"gap_id": "GAP-0001", "p06_payload": GAP}])
@@ -60,6 +69,8 @@ async def main():
         check("S3-EXC", "Placement not university_confirmed is not accepted", s["placement"] is None and "accepts only university_confirmed" in t)
         await paste("placement", dict(PL, period_end="2027-01-15"))
         s = await S(); t = await text(); check("S3-EXC", "Placement whose period ends before it starts is not accepted", s["placement"] is None and "not a valid date range" in t)
+        await paste("placement", dict(PL, placement_id="PL-0010", opportunity_id="OP-039"))
+        s = await S(); t = await text(); check("S3-EXC", "Placement for a listing P03 has not published is not accepted", s["placement"] is None and "OP-039 is not a published P03 listing" in t)
         await paste("placement", {"handoff_id": "H07-0001", "payload": PL})
         s = await S(); t = await text(); pl = s["placement"]
         check("S3-PL", "P04 placement in the v3 format is received (PL-0001, role, supervisor_name/contact, application, version)",
